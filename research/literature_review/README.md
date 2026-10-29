@@ -1,6 +1,12 @@
 # Research Foundation: literature and gap matrix
 
-Status: initial evidence-backed review, not a systematic review and not a novelty claim.
+Status: initial evidence-backed review. The review is governed by `INCLUSION_EXCLUSION_PROTOCOL.md`; it is not a claim of completeness or novelty.
+
+## Controlled artifacts
+
+- [Inclusion/exclusion protocol](INCLUSION_EXCLUSION_PROTOCOL.md)
+- [Bibliography ledger](BIBLIOGRAPHY_LEDGER.md)
+- [Comparison matrix](COMPARISON_MATRIX.md)
 
 ## Primary related work
 
