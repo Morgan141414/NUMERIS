@@ -19,6 +19,7 @@ from numeris.benchmarks import (
 )
 from numeris.benchmarks.runner import SolverConfig
 from numeris.solvers import solve_ode
+from numeris.reproducibility import ReproducibilityMetadata
 
 
 CASES = {
@@ -54,7 +55,14 @@ def main() -> int:
             reference_states=reference.states, name=name,
         )
         reports[name]["reference"] = {"method": reference_method, "rtol": 1e-11, "atol": 1e-13}
-    report = {"seed": args.seed, "models": reports}
+    report = {
+        "seed": args.seed,
+        "models": reports,
+        "reproducibility": ReproducibilityMetadata.capture(
+            seed=args.seed,
+            solver_settings={"methods": args.solver, "rtol": 1e-8, "atol": 1e-10},
+        ).to_dict(),
+    }
     target = args.output_dir / "all_benchmarks.json"
     target.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     print(json.dumps({"output": str(target), "models": list(reports)}, indent=2))

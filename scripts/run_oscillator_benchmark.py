@@ -82,6 +82,7 @@ def run_cli(
     # Import lazily so ``--help`` remains available in a source checkout
     # before optional numerical dependencies have been installed.
     from numeris.solvers import solve_ode
+    from numeris.reproducibility import ReproducibilityMetadata
 
     model = damped_oscillator()
     params = DEFAULT_PARAMS.copy()
@@ -120,6 +121,10 @@ def run_cli(
             "atol": REFERENCE_ATOL,
         },
     }
+    report["reproducibility"] = ReproducibilityMetadata.capture(
+        seed=seed,
+        solver_settings={"methods": list(solvers), "rtol": rtol, "atol": atol},
+    ).to_dict()
 
     if output is not None:
         output.parent.mkdir(parents=True, exist_ok=True)

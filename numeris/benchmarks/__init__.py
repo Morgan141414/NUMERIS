@@ -5,6 +5,7 @@ from .lorenz import lorenz
 from .robertson import robertson
 from .runner import SolverConfig, run_benchmark, run_solver_configuration
 from .statistics import summarize
+from .repeated import run_repeated
 
 __all__ = [
     "damped_oscillator",
@@ -16,4 +17,5 @@ __all__ = [
     "run_benchmark",
     "run_solver_configuration",
     "summarize",
+    "run_repeated",
 ]
