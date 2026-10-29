@@ -60,7 +60,6 @@ def test_equal_budget_comparison_pairs_seeds_and_is_json_friendly():
     )
     json.dumps(report, allow_nan=False)
 
-
 def test_budget_caps_keep_violations_visible_and_exclude_pairs():
     model, params, reference = _fixture()
     report = run_equal_budget_comparison(

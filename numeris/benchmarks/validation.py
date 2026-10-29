@@ -180,7 +180,6 @@ def _label_summary(trials: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         "target_error": _paired_summary(valid),
     }
 
-
 def run_equal_budget_comparison(
     factory_or_model: ODEModel | Callable[..., ODEModel],
     params: np.ndarray,
