@@ -4,6 +4,7 @@ import pytest
 
 from numeris.budget.memory import (
     ProfileResult,
+    ProfilingSummary,
     peak_process_memory_bytes,
     process_memory_bytes,
 )
@@ -29,11 +30,25 @@ def test_profile_result_is_json_safe_and_versioned(tmp_path):
         memory_delta_bytes=30,
         memory_source="test",
         cprofile_enabled=True,
+        profiling_summary=ProfilingSummary(
+            elapsed_s=0.25,
+            memory_source="test",
+            top_cumulative_functions=(
+                {"function": "solve", "cumulative_s": 0.2, "cumulative_share": 0.8},
+            ),
+            cpp_gate_decision={
+                "decision": "investigate_cpp",
+                "measured_hot_spot": True,
+                "numerical_equivalence_verified": False,
+            },
+        ),
     )
     payload = json.loads(result.to_json())
     assert payload["schema_version"] == "1"
     assert payload["memory_delta_bytes"] == 30
     assert "measured hot spot" in payload["cpp_gate"]
+    assert payload["profiling_summary"]["top_cumulative_functions"][0]["function"] == "solve"
+    assert payload["profiling_summary"]["cpp_gate_decision"]["measured_hot_spot"] is True
     result.write_json(tmp_path / "profile.json")
     assert json.loads((tmp_path / "profile.json").read_text()) == payload
 
@@ -47,3 +62,8 @@ def test_profile_result_rejects_invalid_or_unsafe_values():
         ProfileResult(success=False)
     with pytest.raises(ValueError, match="successful"):
         ProfileResult(success=True, error="failure")
+
+
+def test_profiling_summary_requires_structured_type():
+    with pytest.raises(ValueError, match="ProfilingSummary"):
+        ProfileResult(profiling_summary={"elapsed_s": 1.0})

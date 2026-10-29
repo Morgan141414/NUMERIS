@@ -117,6 +117,24 @@ def _json_safe(value: Any) -> Any:
 
 
 @dataclass(frozen=True)
+class ProfilingSummary:
+    """Structured summary emitted by the profiling CLI.
+
+    The summary deliberately records measurements separately from the C++
+    decision.  A large cumulative function is evidence for investigation,
+    not permission to replace numerical code without an equivalence test.
+    """
+
+    elapsed_s: float | None = None
+    memory_source: str = "unavailable"
+    top_cumulative_functions: tuple[dict[str, Any], ...] = ()
+    cpp_gate_decision: dict[str, Any] | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return _json_safe(asdict(self))
+
+
+@dataclass(frozen=True)
 class ProfileResult:
     """Versioned, JSON-safe result of one profiling run.
 
@@ -140,6 +158,7 @@ class ProfileResult:
     cpp_gate: str = (
         "optional: require a measured hot spot and numerical equivalence before C++"
     )
+    profiling_summary: ProfilingSummary | None = None
 
     def __post_init__(self) -> None:
         for name in (
@@ -161,6 +180,10 @@ class ProfileResult:
             raise ValueError("successful profiles cannot contain an error")
         if not self.success and not self.error:
             raise ValueError("failed profiles must contain an error")
+        if self.profiling_summary is not None and not isinstance(
+            self.profiling_summary, ProfilingSummary
+        ):
+            raise ValueError("profiling_summary must be a ProfilingSummary or None")
 
     def to_dict(self) -> dict[str, Any]:
         return _json_safe(asdict(self))
@@ -174,4 +197,9 @@ class ProfileResult:
         destination.write_text(self.to_json() + "\n", encoding="utf-8")
 
 
-__all__ = ["ProfileResult", "peak_process_memory_bytes", "process_memory_bytes"]
+__all__ = [
+    "ProfileResult",
+    "ProfilingSummary",
+    "peak_process_memory_bytes",
+    "process_memory_bytes",
+]
