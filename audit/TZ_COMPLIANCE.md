@@ -1,53 +1,77 @@
-# NUMERIS — итоговая таблица соответствия ТЗ
+# NUMERIS — строгий аудит соответствия ТЗ
 
-Дата: 2026-10-30  
-Проверка: `41 passed`; privacy-check пройден; приватное ТЗ отсутствует в Git и Git-архиве.
+Дата аудита: 2026-10-30
 
-| Requirement | Status | Files | Gap | Priority |
+Аудируемая база: commit `33fdb96` (`Add compliance metrics repeated benchmarks and model configs`) и текущее дерево проекта.
+
+Источник требований: локальный read-only файл `private/TECHNICAL_SPEC.md`.
+Метод: сопоставление требований с фактически присутствующими файлами, публичными API, тестами и CLI; наличие заготовки или документации не считается доказательством научного результата.
+
+## Статусы
+
+- **YES** — требование реализовано на заявленном инженерном уровне и подтверждено кодом/тестами.
+- **PARTIAL** — реализована только часть требования или есть функциональная заготовка без требуемой научной валидации.
+- **NO** — требуемого компонента, эксперимента или доказательства нет.
+
+## Матрица соответствия
+
+| Требование ТЗ | Статус | Фактическое состояние и доказательства | Недостаёт / ограничение | Приоритет |
 |---|---|---|---|---:|
-| Исследовательская identity и фальсифицируемая гипотеза | MUST | `README.md`; `research/hypotheses/HYPOTHESIS.md`; `docs/limitations.md` | Формулировки есть, экспериментального подтверждения нет | P0 |
-| ODE scope и Gaussian observations | MUST | `numeris/models/base.py`; `numeris/inference/gaussian.py` | Нет формальной noise-model/schema и model ID | P1 |
-| Формальная задача `min E_target` при `C <= B` | PARTIAL | `docs/mathematical_foundation.md`; `numeris/controller/goal_oriented.py` | Есть только эвристика; нет доказательств и temporal budget allocation | P0 |
-| Разделение trajectory/likelihood/parameter/posterior/statistical/cost errors | PARTIAL | `numeris/error_analysis/observatory.py`; `numeris/benchmarks/runner.py` | Нет parameter error, posterior benchmark, statistical uncertainty и calibration | P0 |
-| Literature review и research-gap analysis | NO | `research/literature_review/README.md` | Нет библиографии, таблицы аналогов и сравнительного анализа DALTON/adjoint/probabilistic methods | P0 |
-| Baseline solvers RK45/DOP853/Radau/BDF/LSODA | MUST | `numeris/solvers/scipy_solver.py`; `scripts/run_oscillator_benchmark.py`; `tests/regression/test_public_api.py` | Поддержка есть, полного системного сравнения нет | P1 |
-| Пять обязательных benchmark-моделей | MUST | `numeris/benchmarks/*.py`; `tests/unit/test_benchmarks.py` | Фабрики и smoke-тесты есть, научных серий нет | P1 |
-| Synthetic data, controlled noise, converged references | PARTIAL | `scripts/run_oscillator_benchmark.py`; `scripts/run_all_benchmarks.py`; `tests/numerical/test_reference_convergence.py` | Независимая reference-проверка не проведена для всех моделей | P0 |
-| Equal-budget comparison | PARTIAL | `numeris/budget/ledger.py`; `numeris/benchmarks/runner.py`; `docs/benchmarks.md` | Нет CLI budget matrix; solver выполняется до проверки перерасхода | P0 |
-| Repeated runs и uncertainty summaries | PARTIAL | `numeris/benchmarks/statistics.py` | Есть primitive summary, но нет orchestration повторов и отчётов | P1 |
-| Ablation study | NO | `docs/benchmarks.md`; `docs/roadmap.md` | Нет сценариев, данных и результатов отключения компонентов | P0 |
-| Parameter RMSE | NO | `numeris/inference/gaussian.py`; `numeris/benchmarks/runner.py` | `fit_parameters` есть, benchmark не считает ошибку относительно truth | P0 |
-| Likelihood error относительно reference | PARTIAL | `numeris/benchmarks/runner.py`; `numeris/error_analysis/observatory.py` | Сохраняется candidate NLL, но не reference NLL и distortion | P1 |
-| Posterior distance | PARTIAL | `numeris/inference/distances.py`; `numeris/inference/grid.py` | Есть примитивы, нет ODE posterior pipeline и экспериментов; Wasserstein упрощён для unequal samples | P1 |
-| False-optimum rate | NO | — | Нет multi-start/likelihood-landscape эксперимента и метрики | P0 |
-| Runtime/RHS/peak RAM | PARTIAL | `numeris/solvers/scipy_solver.py`; `numeris/benchmarks/runner.py` | RSS — process high-water mark, не изолированная память запуска | P1 |
-| Failure rate | NO | `numeris/benchmarks/runner.py` | Есть `success/message`, нет repeated-run failure rate | P1 |
-| Reliability calibration | NO | `numeris/controller/goal_oriented.py` | Оценка ошибки подаётся извне, predicted-vs-actual calibration отсутствует | P0 |
-| Goal-oriented error estimator | PARTIAL | `numeris/controller/goal_oriented.py` | `SensitivityAwarePolicy` — эвристика, не solver-integrated estimator и не доказанный метод | P0 |
-| Budget allocation по временным интервалам | NO | — | Контроллер оценивает один candidate refinement; temporal allocation отсутствует | P0 |
-| Reliability stopping criterion | PARTIAL | `numeris/controller/goal_oriented.py` | Есть остановка по tolerance/budget/ratio, но нет фактической calibration/utility проверки | P1 |
-| Model Definition: params, bounds, observations, noise, ID, config | PARTIAL | `numeris/models/base.py`; `numeris/inference/gaussian.py` | Нет parameter schema, встроенных bounds/noise/ID/config persistence | P1 |
-| Solver interface и instrumentation | MUST | `numeris/solvers/scipy_solver.py`; `numeris/benchmarks/runner.py` | Основной интерфейс выполнен; hard budget interruption отсутствует | P1 |
-| Numerical Error Observatory | PARTIAL | `numeris/error_analysis/observatory.py`; `tests/numerical/test_reference_convergence.py` | Нет local error, interval sensitivity, accumulation analysis и tolerance-sweep runner | P1 |
-| Inference Engine: MLE, bounds, Gaussian, intervals, multi-start | PARTIAL | `numeris/inference/gaussian.py` | MLE/Gaussian/bounds есть; нет intervals, multi-start orchestration и inference budget | P1 |
-| Inference Distortion Detector | PARTIAL | `numeris/error_analysis/observatory.py`; `numeris/benchmarks/runner.py` | Нет автоматического сравнения fitted parameters/maxima/posteriors между tolerances | P0 |
-| Bayesian inference | NO | `numeris/inference/grid.py`; `pyproject.toml` | Grid posterior — diagnostic; нет PyMC/NumPyro sampler и posterior protocol | P0 |
-| Budget manager RHS/time/runs/memory | PARTIAL | `numeris/budget/ledger.py` | Нет memory limit; runtime/RHS проверяются после полного solve | P1 |
-| Benchmark laboratory и JSON | PARTIAL | `numeris/benchmarks/runner.py`; `scripts/run_*.py` | CLI/JSON есть, но нет полного protocol: budgets, repeats, metadata, calibration | P1 |
-| Reproducibility engine | PARTIAL | `numeris/reproducibility/metadata.py`; `tests/unit/test_reproducibility.py` | Metadata class есть, но не интегрирована в CLI/reports | P1 |
-| Visualization | PARTIAL | `numeris/visualization/plots.py`; `tests/unit/test_visualization.py` | Есть 3 generic plot-а; нет posterior, calibration, parameter-surface и multi-budget views | P2 |
-| Unit/integration/numerical/regression tests | MUST | `tests/`; CI | 41 тест проходит; scientific acceptance criteria не покрыты | P1 |
-| Local macOS/Apple Silicon и <=8 GB target | PARTIAL | `README.md`; `numeris/solvers/scipy_solver.py`; CI | Нет memory guard/workload policy; CI не проверяет Apple Silicon | P2 |
-| Documentation/API/examples/limitations | PARTIAL | `README.md`; `docs/*.md`; `examples/oscillator_demo.py` | Документация честная, но roadmap не синхронизирован с кодом; API неполный | P2 |
-| Research notes, derivations, publication materials | NO | `research/`; `papers/` | Есть только шаблоны; нет derivations, статьи и таблиц | P0 |
-| Negative results и self-refutation | PARTIAL | `research/negative_results.md`; `research/hypotheses/HYPOTHESIS.md` | Условия заданы, фактический ledger отрицательных результатов пуст | P0 |
-| Privacy boundary | MUST | `.gitignore`; `scripts/check_publication_safety.py`; `private/TECHNICAL_SPEC.md` | Текущее состояние чистое; защита процедурная, `git add -f` остаётся возможным | P1 |
-| GitHub readiness | MUST | `.github/workflows/ci.yml`; `LICENSE`; `CITATION.cff`; `CONTRIBUTING.md` | CI и public hygiene готовы; научный релиз не готов без P0-результатов | P2 |
+| Исследовательская identity и фальсифицируемая гипотеза | PARTIAL | `README.md`, `research/hypotheses/HYPOTHESIS.md`, `docs/limitations.md` формулируют inference-aware цель и возможность отрицательного результата | Гипотеза экспериментально не подтверждена и не опровергнута | P0 |
+| ODE scope и Gaussian observations | YES | `numeris/models/base.py`, `numeris/inference/gaussian.py`; детерминированные параметризованные ODE и Gaussian NLL работают | Полная схема модели пока не является обязательным runtime-контрактом | P1 |
+| Формальная задача `min E_target` при `C <= B` | PARTIAL | `docs/mathematical_foundation.md`, `goal_oriented.py`, `temporal.py` задают постановку и эвристические решения | Нет доказанного оптимального метода, solver-integrated objective и теорем | P0 |
+| Разделение trajectory/likelihood/parameter/posterior/statistical/cost errors | PARTIAL | trajectory RMSE/max error и NLL есть в runner; `parameter_rmse`, `likelihood_distortion`, `false_optimum_rate` есть в `inference/metrics.py`; posterior distances есть | Нет единого end-to-end отчёта, statistical uncertainty и reliability calibration | P0 |
+| Literature review и research-gap analysis | NO | Есть только `research/literature_review/README.md` | Нет библиографии, таблицы аналогов и проверенного сравнения DALTON, adjoint, probabilistic ODE, SciML/SUNDIALS | P0 |
+| Baseline solvers RK45/DOP853/Radau/BDF/LSODA | YES | `numeris/solvers/scipy_solver.py`, solver choices в CLI и regression tests поддерживают все пять методов | Полное научное сравнение на всех протоколах не проведено | P1 |
+| Пять обязательных benchmark-моделей | YES | Oscillator, FitzHugh–Nagumo, Lotka–Volterra, Lorenz, Robertson в `numeris/benchmarks/`; unit/smoke coverage есть | Нет полной серии inference-экспериментов по всем моделям | P1 |
+| Synthetic data, controlled noise, converged references | PARTIAL | CLI создают seeded synthetic observations; reference solve и convergence test есть; repeated runner использует общий reference | Независимая reference-проверка и protocol для каждой модели не оформлены как научный результат | P0 |
+| Equal-budget comparison | PARTIAL | `Budget`, `BudgetLedger`, solver cost metrics и temporal allocator существуют | Budget ledger начисляет стоимость после solve; нет полноценной budget matrix и доказанного одинакового stopping protocol | P0 |
+| Repeated runs и uncertainty summaries | PARTIAL | `numeris/benchmarks/repeated.py` повторяет trials по seeds, сохраняет runs, считает `failure_rate` и summaries для nfev/runtime/target_error; есть integration tests | Не повторяется parameter/posterior inference; нет confidence intervals/statistical tests и полного отчёта по всем моделям | P0 |
+| Ablation study | NO | В документации упоминается как будущее сравнение | Нет runner/protocol/results для отключения компонентов controller | P0 |
+| Parameter RMSE | PARTIAL | `numeris/inference/metrics.py` реализует и тестирует числовую метрику | В benchmark runner нет fitting против `true_parameters` и серии результатов | P0 |
+| Likelihood error относительно reference | PARTIAL | `likelihood_distortion(reference, candidate)` реализована и протестирована; runner сохраняет candidate NLL | Reference NLL автоматически не вычисляется/не сравнивается как distortion в runner | P1 |
+| Posterior distance | PARTIAL | `hellinger_distance`, ограниченный `normalized_grid_posterior`, `wasserstein_1d` присутствуют | Нет ODE posterior pipeline, MCMC и posterior experiments; Wasserstein — упрощённое 1-D сопоставление отсортированных samples | P1 |
+| False-optimum rate | PARTIAL | `false_optimum_rate` реализует и тестирует rate для scalar/vector optima | Нет multi-start likelihood-landscape benchmark, truth set и фактических результатов | P0 |
+| Runtime/RHS/peak RAM | PARTIAL | solver и runner сохраняют `nfev`, runtime и peak RSS | Peak RSS — process high-water mark; нет изолированного per-run memory measurement | P1 |
+| Failure rate | PARTIAL | `run_repeated` считает failures по seed/config и сохраняет failed trials | Нет failure-rate результатов для полного научного протокола и inference failures | P1 |
+| Reliability calibration | NO | Controller принимает внешнюю `state_error_estimate`; отдельной calibration implementation нет | Нет predicted-vs-actual coverage, calibration curves и acceptance results | P0 |
+| Goal-oriented error estimator | PARTIAL | `SensitivityAwarePolicy` формально считает `target_error_estimate` и marginal benefit/cost | Это прозрачная эвристика; нет adjoint/sensitivity solver integration и доказанной estimator validity | P0 |
+| Budget allocation по временным интервалам | PARTIAL | `controller/temporal.py` добавляет greedy `allocate_budget_by_sensitivity` с budget-respecting tests | Это baseline ranking по supplied sensitivities/costs; нет автоматического получения sensitivities, refinement и empirical superiority | P0 |
+| Reliability stopping criterion | PARTIAL | `SensitivityAwarePolicy` имеет решения refine/stop по tolerance, budget и ratio | Нет calibrated target error и проверки, что stopping criterion обеспечивает заявленную reliability | P1 |
+| Model Definition: params, bounds, observations, noise, ID, config | PARTIAL | `models/config.py` добавляет `ParameterSpec`/`ModelConfig`, bounds, model ID, observations/noise metadata и JSON round-trip; tests есть | Config не встроен в `ODEModel`, solver, inference и CLI как единый обязательный schema | P1 |
+| Solver interface и instrumentation | PARTIAL | SciPy adapter, method/rtol/atol/max_step, trajectory, nfev/runtime/peak RSS работают | Hard budget interruption отсутствует; budget charge происходит после полного solve | P1 |
+| Numerical Error Observatory | PARTIAL | `error_analysis/observatory.py` и convergence test сравнивают решения с reference | Нет полноценного local-error/interval-sensitivity/tolerance-sweep pipeline и автоматического накопления error report | P1 |
+| Inference Engine: MLE, bounds, Gaussian, intervals, multi-start | PARTIAL | `fit_parameters` поддерживает deterministic Gaussian MLE и bounds; `ModelConfig` хранит bounds metadata | Нет confidence intervals, multi-start orchestration, inference budget и benchmark parameter recovery | P1 |
+| Inference Distortion Detector | PARTIAL | Метрики distortion/RMSE/false-optimum и runner outputs добавлены | Нет автоматического tolerance sweep, сравнения fitted optima/posteriors и distinction numerical vs statistical uncertainty | P0 |
+| Bayesian inference | NO | `normalized_grid_posterior` прямо ограничен low-dimensional diagnostic grid | Нет PyMC/NumPyro sampler, posterior protocol, convergence diagnostics и repeated Bayesian experiments | P0 |
+| Budget manager RHS/time/runs/memory | PARTIAL | `BudgetLedger` учитывает RHS, время и runs | Memory limit не реализован; превышение выявляется после завершения solver | P1 |
+| Benchmark laboratory и JSON | PARTIAL | `runner.py`, `repeated.py`, два CLI и JSON-friendly outputs есть | Нет единого полного protocol, объединяющего budgets, repeats, parameter/posterior metrics, calibration и ablation | P1 |
+| Reproducibility engine | PARTIAL | `ReproducibilityMetadata` сериализует Python/NumPy/SciPy versions, seed, solver settings, hardware и timestamp; oscillator/all-model CLI включают metadata | Metadata не является частью всех benchmark/inference paths; runtime/RSS делают отчёты не полностью byte-identical | P1 |
+| Visualization | PARTIAL | `numeris/visualization/plots.py` содержит trajectory/error/likelihood-budget plots | Нет posterior, calibration, parameter-surface, repeated uncertainty и multi-budget views | P2 |
+| Unit/integration/numerical/regression tests | PARTIAL | Покрыты новые config, metrics, temporal allocator, repeated runner, CLI и прежние модули | Тесты проверяют software behavior, но не заменяют scientific acceptance, ablation и calibration | P1 |
+| Local macOS/Apple Silicon и <=8 GB target | PARTIAL | Локальный Python/SciPy design и metadata hardware capture есть | Нет memory guard, workload policy и CI validation на Apple Silicon; peak RSS не ограничивается | P2 |
+| Documentation/API/examples/limitations | PARTIAL | README, docs, API, example и limitations присутствуют | Документация не содержит завершённых scientific results и полного API/protocol reference | P2 |
+| Research notes, derivations, publication materials | NO | `research/` и `papers/` содержат только заготовки/описания | Нет literature review, derivations, proofs, manuscript и publication-grade tables | P0 |
+| Negative results и self-refutation | PARTIAL | `research/negative_results.md`, hypothesis и limitations задают условия самоопровержения | Нет фактического negative-results ledger и системной проверки случаев, где baseline лучше | P0 |
+| Privacy boundary | YES | `private/TECHNICAL_SPEC.md` read-only и исключён; publication safety script и archive checks присутствуют | Это процедурная защита, а `git add -f` технически возможно; нужна дисциплина проверок | P1 |
+| GitHub readiness | YES | Public repository, CI, LICENSE, CITATION, CONTRIBUTING и audit присутствуют; push history available | Научная публикационная готовность отсутствует, потому что P0 scientific evidence не завершена | P2 |
+
+## Отдельная проверка новых компонентов после `33fdb96`
+
+| Компонент | Фактически подтверждено | Чего он не доказывает |
+|---|---|---|
+| `inference/metrics.py` | `parameter_rmse`, `likelihood_distortion`, `false_optimum_rate` имеют валидацию входов и unit-тесты | Наличие метрики не означает наличие parameter-fitting, landscape или научных результатов |
+| `benchmarks/repeated.py` | Повторы по seeds, одинаковые noisy observations внутри seed, failed trials, failure rate и summaries для nfev/runtime/trajectory RMSE; JSON serialization test | Нет повторного MLE/Bayesian inference, uncertainty intervals, significance tests или ablation |
+| `models/config.py` | Serializable `ModelConfig`/`ParameterSpec`, bounds, observations/noise metadata, JSON round-trip и uniqueness validation | Metadata contract не подключён end-to-end к runtime model, solver и inference |
+| `controller/temporal.py` | Greedy sensitivity-per-cost interval selection с ограничением total budget и tests | Не является доказанным optimal allocator и не получает sensitivity/error автоматически |
+| CLI reproducibility metadata | Oscillator и all-model CLI сохраняют seed, solver settings, package versions и hardware metadata | Не все experiment paths используют metadata; записи времени и machine-dependent cost не гарантируют идентичные отчёты |
 
 ## Итоговый вердикт
 
 **PARTIALLY COMPLIANT / NOT SCIENTIFICALLY COMPLETE.**
 
-Готов инженерный прототип ODE-лаборатории. Не готовы и не доказаны: новый математический метод, превосходство над tuned baselines, equal-budget inference advantage, Bayesian validation, ablation, calibration, false-optimum rate, полноценный literature gap и публикационный результат.
+По software-части NUMERIS заметно продвинулся после `33fdb96`: добавлены проверяемые inference metrics, repeated benchmark orchestration, serializable model metadata, temporal budget-allocation baseline и CLI reproducibility metadata. Эти изменения закрывают отдельные инженерные требования частично или полностью.
 
-Главные следующие задачи: P0 literature review → fixed experimental protocol → reference validation → parameter/inference benchmark → real controller integration → equal-budget/repeated/ablation/calibration experiments → honest negative-results report.
+Проект всё ещё не является завершённой научной работой и не подтверждает научный вклад NUMERIS-GO. Отсутствуют или не выполнены: literature review и research-gap analysis, Bayesian sampling, mathematical proofs, solver-integrated validated estimator, полноценный equal-budget inference protocol, parameter/posterior experiments, ablation study, reliability calibration, false-optimum experiments и публикационные материалы. `SensitivityAwarePolicy` и temporal allocator следует считать исследовательскими baseline/эвристиками до получения теоретических и экспериментальных доказательств.
+
+Рекомендуемый порядок P0: (1) зафиксировать literature/gap matrix; (2) определить reference и equal-budget protocol; (3) встроить ModelConfig и target metrics в end-to-end inference benchmark; (4) добавить Bayesian sampling или честно сузить scope; (5) провести repeated parameter/posterior experiments, ablation и calibration; (6) опубликовать как положительные, так и отрицательные результаты.
