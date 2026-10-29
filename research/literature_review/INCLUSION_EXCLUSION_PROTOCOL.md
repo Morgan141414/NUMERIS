@@ -1,6 +1,6 @@
 # NUMERIS literature review: inclusion and exclusion protocol
 
-Status: active protocol for the Research Foundation phase. This document is a review protocol, not a claim of systematic-review registration or completeness.
+Status: active protocol for the Research Foundation phase; source verification ledger updated 2026-10-30. This document is a review protocol, not a claim of systematic-review registration or completeness.
 
 ## 1. Review objective
 
@@ -113,6 +113,16 @@ For each candidate:
 
 No `P1` or `P2` source is interpreted as evidence that NUMERIS is novel. The matrix records overlap and unresolved comparison requirements.
 
+### Source verification status
+
+The bibliography ledger now records a verification status for every entry:
+
+- `VERIFIED-DIRECT`: the cited publisher, proceedings, official documentation, or first-party record was opened and the identity plus the extracted capability/claim was visible in the record;
+- `VERIFIED-PRIMARY-INDEX`: the persistent DOI or official primary index was resolved, and the title/authors/abstract or official capability record was verified through the primary index or an authoritative record when the publisher page was inaccessible;
+- `UNVERIFIED`: identity or extracted claim still requires source-level checking and must not be used as evidence.
+
+Verification date is recorded in ISO format. A verification status does not mean that NUMERIS reproduced the source or that the source supports a superiority claim.
+
 ## 8. Update and stopping rule
 
 The review remains open until each required category has:
@@ -120,6 +130,7 @@ The review remains open until each required category has:
 - at least two primary method sources where the category is mature;
 - at least one official software source for SciPy, SUNDIALS, and SciML;
 - a documented search date and query family;
+- a verification status and date for every ledger entry;
 - an explicit list of unresolved nearest-neighbour comparisons.
 
 The review may be frozen only by recording a date, ledger revision, and a signed/committed protocol version. Freezing the review does not imply that the research gap is real.

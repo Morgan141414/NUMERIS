@@ -1,6 +1,6 @@
 # NUMERIS predeclared experiment protocol v0.1
 
-Status: protocol draft for review; no result is accepted as evidence until this file is frozen before the corresponding run.
+Status: protocol frozen as v0.1 on 2026-10-30; exact run configuration is binding in `PROTOCOL_MANIFEST_v0.1.md`.
 
 ## Scope
 
@@ -12,7 +12,7 @@ Deterministic parameterized ODEs with Gaussian observation noise on a local Appl
 - noise levels: `sigma ∈ {0.01, 0.05, 0.10}` in model-output units;
 - solver baselines: RK45, DOP853, Radau, BDF, LSODA where applicable;
 - tolerance grid: `rtol ∈ {1e-4, 1e-6, 1e-8, 1e-10}`, with `atol = rtol * 1e-2` unless the model declares otherwise;
-- budgets: fixed RHS-evaluation caps selected after a pilot run and reported before comparison;
+- budgets: fixed per-model RHS-evaluation caps declared before comparison in `PROTOCOL_MANIFEST_v0.1.md`;
 - reference: tolerance-convergence plus an independent solver family; a strict tolerance alone is never labelled exact.
 
 ## Required comparisons
@@ -42,4 +42,4 @@ Before adding C++, run the Python workload profiler on representative benchmark 
 
 ## Current status
 
-This protocol is not yet frozen. The next exit criterion is a signed/committed configuration manifest plus converged references for all five model families.
+The protocol freeze exit criterion is satisfied by the committed versioned manifest. Converged references remain a required pre-analysis quality gate; until they pass for all five model families, the corresponding model is `REFERENCE-UNRESOLVED` and cannot support a superiority claim.
