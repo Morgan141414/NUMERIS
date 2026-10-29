@@ -4,6 +4,7 @@ from .lotka_volterra import lotka_volterra
 from .lorenz import lorenz
 from .robertson import robertson
 from .runner import SolverConfig, run_benchmark, run_solver_configuration
+from .bounded import run_bounded_benchmark
 from .statistics import summarize
 from .repeated import run_repeated
 from .validation import (
@@ -24,6 +25,7 @@ __all__ = [
     "SolverConfig",
     "run_benchmark",
     "run_solver_configuration",
+    "run_bounded_benchmark",
     "summarize",
     "run_repeated",
     "AblationCase",
