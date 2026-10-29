@@ -13,6 +13,7 @@ from .validation import (
     run_ablation_cases,
     run_equal_budget_comparison,
 )
+from .validation_report import ValidationCase, run_validation_suite
 
 __all__ = [
     "damped_oscillator",
@@ -30,4 +31,6 @@ __all__ = [
     "predefined_solver_configs",
     "run_ablation_cases",
     "run_equal_budget_comparison",
+    "ValidationCase",
+    "run_validation_suite",
 ]
