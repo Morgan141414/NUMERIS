@@ -15,6 +15,7 @@ No MCMC is used.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from statistics import NormalDist
 from typing import Sequence
 
 import numpy as np
@@ -42,6 +43,8 @@ class PosteriorCalibrationResult:
     coverage: np.ndarray
     mean_interval_width: np.ndarray
     coverage_standard_error: np.ndarray
+    coverage_confidence_level: float
+    coverage_confidence_interval: np.ndarray
     replicate_coverage: np.ndarray
     replicate_seeds: tuple[int, ...]
     solver_settings: dict[str, object]
@@ -62,17 +65,26 @@ class PosteriorCalibrationResult:
         coverage = np.asarray(self.coverage, dtype=float)
         widths = np.asarray(self.mean_interval_width, dtype=float)
         standard_error = np.asarray(self.coverage_standard_error, dtype=float)
+        confidence_interval = np.asarray(self.coverage_confidence_interval, dtype=float)
         replicate_coverage = np.asarray(self.replicate_coverage, dtype=bool)
+        if not 0.0 < self.coverage_confidence_level < 1.0:
+            raise ValueError("coverage_confidence_level must be between zero and one")
         if any(array.shape != (n_parameters,) for array in (counts, coverage, widths, standard_error)):
             raise ValueError("calibration summaries must have one value per parameter")
+        if confidence_interval.shape != (n_parameters, 2):
+            raise ValueError("coverage_confidence_interval must have shape (n_parameters, 2)")
         if replicate_coverage.shape != (self.repetitions, n_parameters):
             raise ValueError("replicate_coverage has an invalid shape")
         if len(self.replicate_seeds) != self.repetitions:
             raise ValueError("replicate_seeds must contain one seed per replicate")
         if np.any(counts < 0) or np.any(counts > self.repetitions):
             raise ValueError("coverage_counts must be within the replicate count")
-        if not all(np.all(np.isfinite(array)) for array in (coverage, widths, standard_error)):
+        if not all(np.all(np.isfinite(array)) for array in (coverage, widths, standard_error, confidence_interval)):
             raise ValueError("calibration summaries must be finite")
+        if np.any(confidence_interval < 0.0) or np.any(confidence_interval > 1.0):
+            raise ValueError("coverage confidence intervals must lie in [0, 1]")
+        if np.any(confidence_interval[:, 0] > confidence_interval[:, 1]):
+            raise ValueError("coverage confidence intervals must be ordered")
 
     def summary(self) -> dict[str, object]:
         """Return a JSON-friendly summary without per-replicate arrays."""
@@ -85,6 +97,8 @@ class PosteriorCalibrationResult:
             "coverage": self.coverage.tolist(),
             "mean_interval_width": self.mean_interval_width.tolist(),
             "coverage_standard_error": self.coverage_standard_error.tolist(),
+            "coverage_confidence_level": float(self.coverage_confidence_level),
+            "coverage_confidence_interval": self.coverage_confidence_interval.tolist(),
             "replicate_seeds": list(self.replicate_seeds),
             "solver_settings": dict(self.solver_settings),
             "limitations": [
@@ -103,6 +117,7 @@ def calibrate_credible_intervals(
     *,
     repetitions: int = 20,
     credible_level: float = 0.95,
+    coverage_confidence_level: float = 0.95,
     seed: int = 0,
     parameter_names: Sequence[str] | None = None,
     method: str = "DOP853",
@@ -125,6 +140,11 @@ def calibrate_credible_intervals(
         Carlo noise but increase the number of ODE solves.
     credible_level:
         Equal-tail interval level passed to the grid posterior.
+    coverage_confidence_level:
+        Frequentist confidence level for the Wilson interval around the
+        empirical repeated-sampling coverage.  This quantifies Monte Carlo
+        uncertainty in the calibration estimate; it is not a posterior
+        credible interval and does not account for model or grid error.
     seed:
         Root seed from which one reproducible integer seed is derived per
         replicate.
@@ -141,6 +161,8 @@ def calibrate_credible_intervals(
         raise ValueError("seed must be an integer")
     if not 0.0 < credible_level < 1.0:
         raise ValueError("credible_level must be between zero and one")
+    if not 0.0 < coverage_confidence_level < 1.0:
+        raise ValueError("coverage_confidence_level must be between zero and one")
 
     if parameter_names is None:
         names = tuple(f"parameter_{index}" for index in range(truth_array.size))
@@ -175,6 +197,20 @@ def calibrate_credible_intervals(
     counts = replicate_coverage.sum(axis=0).astype(int)
     coverage = counts / int(repetitions)
     standard_error = np.sqrt(coverage * (1.0 - coverage) / int(repetitions))
+    # Wilson intervals remain informative at coverage 0 and 1, unlike a
+    # normal approximation based only on +/- standard error.
+    z = NormalDist().inv_cdf(0.5 + float(coverage_confidence_level) / 2.0)
+    denominator = 1.0 + z**2 / int(repetitions)
+    centre = (coverage + z**2 / (2.0 * int(repetitions))) / denominator
+    half_width = (
+        z
+        * np.sqrt(
+            coverage * (1.0 - coverage) / int(repetitions)
+            + z**2 / (4.0 * int(repetitions) ** 2)
+        )
+        / denominator
+    )
+    confidence_interval = np.column_stack((centre - half_width, centre + half_width))
     return PosteriorCalibrationResult(
         truth=truth_array.copy(),
         parameter_names=names,
@@ -184,6 +220,8 @@ def calibrate_credible_intervals(
         coverage=coverage,
         mean_interval_width=interval_widths.mean(axis=0),
         coverage_standard_error=standard_error,
+        coverage_confidence_level=float(coverage_confidence_level),
+        coverage_confidence_interval=confidence_interval,
         replicate_coverage=replicate_coverage,
         replicate_seeds=replicate_seeds,
         solver_settings={

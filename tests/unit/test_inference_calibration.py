@@ -32,6 +32,11 @@ def test_calibration_is_reproducible_and_reports_coverage():
     assert first.coverage_counts.tolist() == [4]
     assert first.coverage.tolist() == [1.0]
     assert first.coverage_standard_error.tolist() == [0.0]
+    assert first.coverage_confidence_level == 0.95
+    assert first.coverage_confidence_interval.shape == (1, 2)
+    lower, upper = first.coverage_confidence_interval[0]
+    assert lower < first.coverage[0]
+    assert first.coverage[0] <= upper + 1e-15
     assert first.replicate_coverage.shape == (4, 1)
     assert first.replicate_seeds == second.replicate_seeds
     assert np.array_equal(first.replicate_coverage, second.replicate_coverage)
@@ -47,7 +52,27 @@ def test_calibration_validates_small_protocol_inputs():
         calibrate_credible_intervals(model, repetitions=0, **common)
     with pytest.raises(ValueError, match="credible_level"):
         calibrate_credible_intervals(model, credible_level=1.0, **common)
+    with pytest.raises(ValueError, match="coverage_confidence_level"):
+        calibrate_credible_intervals(model, coverage_confidence_level=1.0, **common)
     with pytest.raises(ValueError, match="parameter_names"):
         calibrate_credible_intervals(model, parameter_names=["a", "b"], **common)
     with pytest.raises(ValueError, match="truth dimensionality"):
         calibrate_credible_intervals(model, **{**common, "truth": [0.7, 0.1]})
+
+
+def test_calibration_summary_exposes_monte_carlo_uncertainty():
+    result = calibrate_credible_intervals(
+        _decay_model(),
+        truth=[0.7],
+        sigma=0.01,
+        parameter_grid=[[0.5], [0.7], [0.9]],
+        repetitions=4,
+        seed=19,
+        coverage_confidence_level=0.9,
+    )
+
+    summary = result.summary()
+    assert summary["coverage_confidence_level"] == 0.9
+    interval = np.asarray(summary["coverage_confidence_interval"])
+    assert interval.shape == (1, 2)
+    assert 0.0 <= interval[0, 0] <= result.coverage[0] <= interval[0, 1] <= 1.0
