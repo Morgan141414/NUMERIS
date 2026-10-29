@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from numeris.inference import PosteriorCalibrationResult, calibrate_credible_intervals
+from numeris.inference import (
+    PairedToleranceSweepResult,
+    PosteriorCalibrationResult,
+    calibrate_credible_intervals,
+    paired_tolerance_sweep,
+)
 from numeris.models import ODEModel
 
 
@@ -76,3 +81,51 @@ def test_calibration_summary_exposes_monte_carlo_uncertainty():
     interval = np.asarray(summary["coverage_confidence_interval"])
     assert interval.shape == (1, 2)
     assert 0.0 <= interval[0, 0] <= result.coverage[0] <= interval[0, 1] <= 1.0
+
+
+def test_paired_tolerance_sweep_reuses_observations_and_is_reproducible():
+    model = _decay_model()
+    kwargs = dict(
+        model=model,
+        truth=[0.7],
+        sigma=0.01,
+        parameter_grid=[[0.5], [0.7], [0.9]],
+        tolerances=[(1e-6, 1e-8), (1e-10, 1e-12)],
+        repetitions=3,
+        seed=23,
+        parameter_names=["rate"],
+    )
+    first = paired_tolerance_sweep(**kwargs)
+    second = paired_tolerance_sweep(**kwargs)
+
+    assert isinstance(first, PairedToleranceSweepResult)
+    assert first.observation_seeds == second.observation_seeds
+    assert np.array_equal(first.map_estimates, second.map_estimates)
+    assert np.array_equal(first.posterior_means, second.posterior_means)
+    assert np.allclose(first.posterior_distance_from_reference, second.posterior_distance_from_reference)
+    assert first.map_estimates.shape == (3, 2, 1)
+    assert first.posterior_means.shape == (3, 2, 1)
+    assert np.allclose(first.map_shift_from_reference[:, 0], 0.0)
+    assert np.allclose(first.posterior_distance_from_reference[:, 0], 0.0)
+    summary = first.summary()
+    assert summary["tolerances"] == [
+        {"rtol": 1e-6, "atol": 1e-8},
+        {"rtol": 1e-10, "atol": 1e-12},
+    ]
+    assert "same observations" in " ".join(summary["interpretation"])
+
+
+def test_paired_tolerance_sweep_validates_tolerance_protocol():
+    model = _decay_model()
+    common = dict(
+        truth=[0.7], sigma=0.01,
+        parameter_grid=[[0.5], [0.7], [0.9]], repetitions=1,
+    )
+    with pytest.raises(ValueError, match="non-empty"):
+        paired_tolerance_sweep(model, tolerances=[], **common)
+    with pytest.raises(ValueError, match="positive rtol"):
+        paired_tolerance_sweep(model, tolerances=[(0.0, 1e-8)], **common)
+    with pytest.raises(ValueError, match="observation tolerances"):
+        paired_tolerance_sweep(
+            model, tolerances=[(1e-6, 1e-8)], observation_rtol=0.0, **common
+        )

@@ -22,7 +22,8 @@ import numpy as np
 
 from numeris.models.base import ODEModel
 
-from .bayesian_grid import ParameterRecoveryResult, run_parameter_recovery
+from .bayesian_grid import ParameterRecoveryResult, posterior_distance, run_parameter_recovery
+from numeris.solvers.scipy_solver import solve_ode
 
 
 @dataclass(frozen=True)
@@ -235,4 +236,198 @@ def calibrate_credible_intervals(
     )
 
 
-__all__ = ["PosteriorCalibrationResult", "calibrate_credible_intervals"]
+@dataclass(frozen=True)
+class PairedToleranceSweepResult:
+    """Inference changes measured on the same observations at each tolerance.
+
+    The observations are generated once per replicate and then passed to every
+    tolerance configuration.  Consequently, differences between columns are
+    paired numerical-tolerance diagnostics; they should not be interpreted as
+    a separation of numerical error from all statistical uncertainty.  The
+    repeated rows still contain finite-observation variation, which is exposed
+    through the per-replicate arrays and their means.
+    """
+
+    truth: np.ndarray
+    parameter_names: tuple[str, ...]
+    tolerances: tuple[tuple[float, float], ...]
+    reference_index: int
+    repetitions: int
+    map_estimates: np.ndarray
+    posterior_means: np.ndarray
+    map_rmse: np.ndarray
+    posterior_mean_rmse: np.ndarray
+    map_shift_from_reference: np.ndarray
+    posterior_distance_from_reference: np.ndarray
+    observation_seeds: tuple[int, ...]
+    method: str
+    sigma: float
+
+    def __post_init__(self) -> None:
+        truth = np.asarray(self.truth, dtype=float)
+        if truth.ndim != 1 or truth.size == 0 or not np.all(np.isfinite(truth)):
+            raise ValueError("truth must be a finite, non-empty 1-D array")
+        n_tolerances = len(self.tolerances)
+        if n_tolerances == 0:
+            raise ValueError("tolerances must be non-empty")
+        if len(self.parameter_names) != truth.size:
+            raise ValueError("parameter_names must match truth dimensionality")
+        if not 0 <= self.reference_index < n_tolerances:
+            raise ValueError("reference_index must identify a tolerance")
+        if self.repetitions <= 0:
+            raise ValueError("repetitions must be positive")
+        expected = (self.repetitions, n_tolerances, truth.size)
+        for name in ("map_estimates", "posterior_means"):
+            value = np.asarray(getattr(self, name), dtype=float)
+            if value.shape != expected or not np.all(np.isfinite(value)):
+                raise ValueError(f"{name} must be finite with shape {expected}")
+        for name in ("map_rmse", "posterior_mean_rmse", "map_shift_from_reference"):
+            value = np.asarray(getattr(self, name), dtype=float)
+            expected_shape = (self.repetitions, n_tolerances) if name != "map_shift_from_reference" else expected
+            if value.shape != expected_shape or not np.all(np.isfinite(value)):
+                raise ValueError(f"{name} has an invalid shape")
+        posterior_distance_values = np.asarray(self.posterior_distance_from_reference, dtype=float)
+        if posterior_distance_values.shape != (self.repetitions, n_tolerances):
+            raise ValueError("posterior_distance_from_reference has an invalid shape")
+        if not np.all(np.isfinite(posterior_distance_values)):
+            raise ValueError("posterior distances must be finite")
+        if len(self.observation_seeds) != self.repetitions:
+            raise ValueError("observation_seeds must contain one seed per replicate")
+
+    def summary(self) -> dict[str, object]:
+        """Return a JSON-friendly paired numerical-vs-statistical summary."""
+        return {
+            "truth": self.truth.tolist(),
+            "parameter_names": list(self.parameter_names),
+            "tolerances": [
+                {"rtol": rtol, "atol": atol} for rtol, atol in self.tolerances
+            ],
+            "reference_index": self.reference_index,
+            "repetitions": self.repetitions,
+            "mean_map_rmse": self.map_rmse.mean(axis=0).tolist(),
+            "mean_posterior_mean_rmse": self.posterior_mean_rmse.mean(axis=0).tolist(),
+            "mean_map_shift_from_reference": self.map_shift_from_reference.mean(axis=0).tolist(),
+            "mean_posterior_distance_from_reference": self.posterior_distance_from_reference.mean(axis=0).tolist(),
+            "observation_seeds": list(self.observation_seeds),
+            "method": self.method,
+            "sigma": self.sigma,
+            "interpretation": [
+                "All tolerance configurations use the same observations within each replicate.",
+                "Within-replicate differences are paired numerical-tolerance diagnostics.",
+                "Across-replicate spread still reflects finite-observation statistical variation.",
+                "This result makes no superiority or novelty claim.",
+            ],
+        }
+
+
+def paired_tolerance_sweep(
+    model: ODEModel,
+    truth: Sequence[float] | np.ndarray,
+    sigma: float,
+    parameter_grid: np.ndarray | Sequence[Sequence[float]],
+    tolerances: Sequence[tuple[float, float]],
+    *,
+    repetitions: int = 20,
+    seed: int = 0,
+    parameter_names: Sequence[str] | None = None,
+    method: str = "DOP853",
+    observation_rtol: float | None = None,
+    observation_atol: float | None = None,
+) -> PairedToleranceSweepResult:
+    """Compare solver tolerances on paired synthetic observations.
+
+    One noisy observation set is generated per replicate and reused for every
+    pair in ``tolerances``.  This design prevents a new random dataset from
+    being mistaken for a tolerance-induced change.  The observation trajectory
+    uses ``observation_rtol``/``observation_atol`` (the strictest supplied
+    values by default), while each inference run uses its own pair.
+    """
+    truth_array = np.asarray(truth, dtype=float)
+    grid = np.asarray(parameter_grid, dtype=float)
+    if truth_array.ndim != 1 or truth_array.size == 0 or not np.all(np.isfinite(truth_array)):
+        raise ValueError("truth must be a finite, non-empty 1-D vector")
+    if grid.ndim != 2 or grid.shape[0] == 0 or grid.shape[1] != truth_array.size:
+        raise ValueError("parameter_grid must be non-empty and match truth dimensionality")
+    if not np.isfinite(sigma) or sigma <= 0:
+        raise ValueError("sigma must be a finite positive value")
+    if not isinstance(repetitions, (int, np.integer)) or repetitions <= 0:
+        raise ValueError("repetitions must be a positive integer")
+    if not isinstance(seed, (int, np.integer)):
+        raise ValueError("seed must be an integer")
+    if not tolerances:
+        raise ValueError("tolerances must be non-empty")
+    tolerance_pairs = tuple((float(rtol), float(atol)) for rtol, atol in tolerances)
+    if any(rtol <= 0 or atol <= 0 or not np.isfinite(rtol) or not np.isfinite(atol)
+           for rtol, atol in tolerance_pairs):
+        raise ValueError("each tolerance must contain finite positive rtol and atol")
+    if parameter_names is None:
+        names = tuple(f"parameter_{index}" for index in range(truth_array.size))
+    else:
+        names = tuple(parameter_names)
+        if len(names) != truth_array.size or len(set(names)) != len(names) or not all(names):
+            raise ValueError("parameter_names must be unique and match truth dimensionality")
+
+    obs_rtol = min(rtol for rtol, _ in tolerance_pairs) if observation_rtol is None else float(observation_rtol)
+    obs_atol = min(atol for _, atol in tolerance_pairs) if observation_atol is None else float(observation_atol)
+    if obs_rtol <= 0 or obs_atol <= 0 or not np.isfinite(obs_rtol) or not np.isfinite(obs_atol):
+        raise ValueError("observation tolerances must be finite and positive")
+
+    child_sequences = np.random.SeedSequence(int(seed)).spawn(int(repetitions))
+    observation_seeds = tuple(
+        int(sequence.generate_state(1, dtype=np.uint64)[0] % np.iinfo(np.int64).max)
+        for sequence in child_sequences
+    )
+    n_repetitions = int(repetitions)
+    n_tolerances = len(tolerance_pairs)
+    n_parameters = truth_array.size
+    map_estimates = np.empty((n_repetitions, n_tolerances, n_parameters), dtype=float)
+    posterior_means = np.empty_like(map_estimates)
+    map_rmse = np.empty((n_repetitions, n_tolerances), dtype=float)
+    posterior_mean_rmse = np.empty_like(map_rmse)
+    map_shift = np.empty_like(map_estimates)
+    posterior_shift = np.empty_like(map_rmse)
+
+    for replicate, observation_seed in enumerate(observation_seeds):
+        reference = solve_ode(model, truth_array, method=method, rtol=obs_rtol, atol=obs_atol)
+        if not reference.success:
+            raise RuntimeError(f"truth ODE solve failed: {reference.message}")
+        clean = np.asarray(model.observe(reference.states), dtype=float)
+        rng = np.random.default_rng(observation_seed)
+        observations = clean + rng.normal(0.0, sigma, size=clean.shape)
+        recoveries: list[ParameterRecoveryResult] = []
+        for tolerance_index, (rtol, atol) in enumerate(tolerance_pairs):
+            recovery = run_parameter_recovery(
+                model, truth_array, sigma, grid, observations=observations,
+                seed=observation_seed, parameter_names=names, method=method,
+                rtol=rtol, atol=atol,
+            )
+            recoveries.append(recovery)
+            map_estimates[replicate, tolerance_index] = recovery.map_estimate
+            posterior_means[replicate, tolerance_index] = recovery.posterior_mean
+            map_rmse[replicate, tolerance_index] = recovery.map_rmse
+            posterior_mean_rmse[replicate, tolerance_index] = recovery.mean_rmse
+        reference_recovery = recoveries[0]
+        for tolerance_index, recovery in enumerate(recoveries):
+            map_shift[replicate, tolerance_index] = np.abs(
+                recovery.map_estimate - reference_recovery.map_estimate
+            )
+            posterior_shift[replicate, tolerance_index] = posterior_distance(
+                recovery.posterior, reference_recovery.posterior
+            )
+
+    return PairedToleranceSweepResult(
+        truth=truth_array.copy(), parameter_names=names, tolerances=tolerance_pairs,
+        reference_index=0, repetitions=n_repetitions, map_estimates=map_estimates,
+        posterior_means=posterior_means, map_rmse=map_rmse,
+        posterior_mean_rmse=posterior_mean_rmse, map_shift_from_reference=map_shift,
+        posterior_distance_from_reference=posterior_shift,
+        observation_seeds=observation_seeds, method=method, sigma=float(sigma),
+    )
+
+
+__all__ = [
+    "PosteriorCalibrationResult",
+    "calibrate_credible_intervals",
+    "PairedToleranceSweepResult",
+    "paired_tolerance_sweep",
+]
