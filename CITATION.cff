@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: "NUMERIS: Inference-Aware Numerical Computing"
+message: "Please cite the repository and the research paper when available."
+type: software
+authors:
+  - family-names: "Korgan"
+    given-names: "Amanat"
+version: 0.1.0
+date-released: 2026-10-30
+license: MIT
