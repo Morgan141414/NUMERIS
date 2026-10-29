@@ -17,17 +17,17 @@ class SolverConfig:
     method: str = "DOP853"
     rtol: float = 1e-8
     atol: float = 1e-10
-    max_step: float = np.inf
+    max_step: float | None = np.inf
 
     def as_dict(self) -> dict[str, Any]:
         """Return a JSON-friendly representation of this configuration."""
-        max_step = float(self.max_step)
+        max_step = None if self.max_step is None else float(self.max_step)
         return {
             "name": str(self.name),
             "method": str(self.method),
             "rtol": float(self.rtol),
             "atol": float(self.atol),
-            "max_step": max_step if np.isfinite(max_step) else None,
+            "max_step": max_step if max_step is None or np.isfinite(max_step) else None,
         }
 
 
@@ -88,7 +88,7 @@ def run_solver_configuration(
         method=normalized.method,
         rtol=normalized.rtol,
         atol=normalized.atol,
-        max_step=normalized.max_step,
+        max_step=np.inf if normalized.max_step is None else normalized.max_step,
     )
     if budget is not None:
         budget.charge_rhs(result.nfev)
