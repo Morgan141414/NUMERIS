@@ -1,3 +1,3 @@
-from .observatory import compare_solutions
+from .observatory import compare_solutions, target_distortion
 
-__all__ = ["compare_solutions"]
+__all__ = ["compare_solutions", "target_distortion"]
