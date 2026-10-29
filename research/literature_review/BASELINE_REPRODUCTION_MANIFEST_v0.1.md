@@ -36,7 +36,7 @@ explicit stop rule. The current status is deliberately conservative.
 | ADJ-GLOBAL | Adjoint/global error control | ADJ-01, ADJ-02 | A posteriori/global error estimate or control for one declared scalar functional on one smooth and one stiff ODE | R0 | Dated equation/assumption extraction, source-aligned estimator mapping, R1 smoke record, calibration against independent reference |
 | GO-FUNCTIONAL | Goal-oriented/functional control | ADJ-01, ADJ-02 plus mechanism sources | Fixed functional-to-refinement/allocation mapping under a frozen tolerance grid and budget | CONCEPTUAL-BASELINE | Functional and decision rule frozen before runs, negative weak-coupling case, estimator calibration record |
 | LIKELIHOOD-DISTORTION | Solver-induced likelihood distortion | DIST-01 | Fixed parameter-grid Gaussian likelihood at at least three solver accuracy levels against a converged reference | NOT-REPRODUCED | Source-aligned model/metric mapping, fixed-grid run, surface roughness and maximizer-displacement record, failed-run denominator |
-| DALTON | Likelihood-aware probabilistic inference | DAL-01 | Source-compatible local environment, observation model, objective, priors/stopping rules, and matched cost comparison | NOT-REPRODUCED | Dependency/source compatibility record; if unavailable, exact blocker record and no substitute claim |
+| DALTON | Likelihood-aware probabilistic inference | DAL-01 | Source-compatible local environment, observation model, objective, priors/stopping rules, and matched cost comparison | BLOCKED | Pin a source-compatible `rodeo` revision and JAX environment; record installation/import checks, then map one published DALTON benchmark without substitution |
 | PROB-ODE | Probabilistic ODE solvers | PN-01, PN-02 | Separate frozen probabilistic protocol; not part of deterministic v0.1 claims | BLOCKED | New versioned protocol, implementation/version record, uncertainty calibration and matched budget |
 
 The source IDs must resolve in BIBLIOGRAPHY_LEDGER.md. A SciPy run is a
@@ -96,6 +96,8 @@ This manifest does not implement adjoint, goal-oriented, probabilistic, or
 DALTON methods. It does not establish novelty, superiority, publication
 readiness, or equivalence. It only makes the reproduction boundary auditable.
 
-The current statuses are based on project records available on 2026-10-30.
-They must be changed only by adding evidence or a checkable blocker, never by
-renaming a status after a result is observed.
+The current statuses are based on project records available on 2026-10-30 and
+the source-aligned status record in
+`BASELINE_REPRODUCTION_STATUS_2026-10-30.md`. They must be changed only by
+adding evidence or a checkable blocker, never by renaming a status after a
+result is observed.
