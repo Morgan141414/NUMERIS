@@ -1,186 +1,159 @@
 # NUMERIS — Strict Compliance Gate
 
-Дата аудита: 2026-10-30  
-Аудируемый commit: `4abf2357db52c36fadf5ddd228f4215c23d7df15` (`4abf235`)
+Дата аудита: 2026-10-30 (Asia/Almaty)
+Аудируемый диапазон: `9fc3163..d634249`
+Текущий HEAD: `d6342491be38cad68c2b33e5491a504763021aca` (`d634249`)
 Источник требований: локальный read-only `private/TECHNICAL_SPEC.md`
-Ограничение аудита: изменён только этот файл; код и GitHub не изменялись.
+Ограничение аудита: изменён только этот файл; код, ТЗ и GitHub не изменялись.
 
 ## Итоговый verdict
 
 **BLOCKED — PARTIALLY COMPLIANT, NOT SCIENTIFICALLY COMPLETE.**
 
-Текущий HEAD представляет собой работающий и протестированный Python-прототип исследовательской лаборатории. Четыре запрошенных slices интегрированы на уровне файлов, импортов и тестов:
+Текущий HEAD заметно продвинулся относительно `9fc3163`: protocol manifest заморожен, literature ledger получил статусы проверки, Bayesian parameter-recovery helper добавлен, validation callbacks теперь реально вызываются, а profiling/C++ gate стал измеримым. Это подтверждает зрелость программной инфраструктуры, но не завершает исследование по ТЗ. Наличие API, unit-тестов или smoke-run не считается scientific evidence.
 
-1. literature foundation;
-2. Bayesian grid pipeline;
-3. equal-budget/ablation validation infrastructure;
-4. cross-platform memory profiling и C++ gate.
+## Фактические проверки HEAD
 
-Однако ни один из этих фактов сам по себе не является научным evidence преимущества NUMERIS-GO. В текущем HEAD отсутствуют frozen protocol, ближайшее baseline reproduction, end-to-end controller experiment, фактические equal-budget результаты по пяти моделям, настоящая ablation study, calibration evidence, C++ equivalence/speed evidence и доказанная новизна.
-
-## Проверяемые свойства HEAD
-
-| Проверка | Результат | Фактическое основание |
+| Проверка | Статус | Основание |
 |---|---|---|
-| Git HEAD | **PASS** | `4abf235`; `main...origin/main`; рабочее дерево чистое |
-| Полный тестовый набор | **PASS** для software slice | `.venv/bin/python -m pytest -q`: `81 passed in 0.50s` |
-| Компиляция | **PASS** | `python -m compileall -q numeris scripts tests` |
-| Public API/imports | **PASS** | Импортированы benchmark factories, validation exports, Bayesian grid exports и memory schema |
-| Runtime validation smoke | **PASS** для инфраструктуры | Equal-budget и ablation runner выполнились на oscillator, но результаты не являются доказательством преимущества |
-| Profiling CLI | **PASS** для инструмента | Созданы временные `.prof` и JSON; artifact не сохранён в репозитории и покрывает только oscillator/DOP853 |
-| Publication safety | **PASS** | `scripts/check_publication_safety.py`: passed; archive scan не содержит private/spec/secret/confidential файлов |
-| Private specification | **PASS** для privacy boundary | `private/TECHNICAL_SPEC.md` имеет режим `0444`, игнорируется Git и не отслеживается |
-| Scientific completion | **FAIL/BLOCKED** | Нет frozen protocol, полного experiment package, valid controller evidence, C++ evidence или novelty decision |
+| Git HEAD | **PASS** | `d634249`; `main...origin/main`; расхождение с origin = `0 0` |
+| Полный тестовый набор | **PASS** для software slice | `.venv/bin/python -m pytest -q` → `86 passed` |
+| Компиляция | **PASS** | публичные модули импортируются; compileall ранее проходил |
+| Public API | **PASS** для API-контракта | benchmark factories, solver methods, Bayesian recovery, validation, memory schema экспортируются и покрыты тестами |
+| Frozen protocol manifest | **PASS** | `research/protocol/PROTOCOL_MANIFEST_v0.1.md`, статус `FROZEN`, фиксированные модели/seed/noise/solver/tolerance/budget/reference/decision rule |
+| Literature ledger | **PARTIAL** | источники и verification status/date есть, но нет complete systematic screening и reproduction ближайших baseline |
+| Bayesian recovery | **PARTIAL** | работает finite-grid Gaussian recovery; сам модуль запрещает трактовать single-run coverage как calibration и не выполняет MCMC |
+| Validation callbacks | **PARTIAL** | callback реально меняет effective solver configuration, но это ещё не estimator/allocation/stopping ablation NUMERIS-GO |
+| Equal-budget evidence | **FAIL** как научный результат | orchestration есть, committed five-model result matrix и primary endpoints отсутствуют |
+| Memory profiling | **PARTIAL** | cross-platform schema и CLI есть; representative multi-model evidence не сохранено |
+| C++ gate | **BLOCKED** | hot spot может быть отмечен, но нет C++ kernel, numerical equivalence и measured speed/memory benefit |
+| Privacy | **PASS** | `private/TECHNICAL_SPEC.md` не tracked, mode `0444`, archive не содержит private/spec/secret/confidential; publication safety check passed |
+| Scientific completion | **FAIL/BLOCKED** | отсутствуют доказательства superiority/novelty, calibration, complete ablation и publication package |
 
-## Статусы
+## Аудит изменений после `9fc3163`
 
-- **PASS** — требование выполнено и подтверждено проверяемым артефактом; для научных claims нужен воспроизводимый результат, а не наличие API.
-- **PARTIAL** — часть реализации есть, но обязательная научная проверка, интеграция или критерий выхода отсутствует.
-- **FAIL** — требование применимо, но необходимый результат отсутствует.
-- **BLOCKED** — зависимый этап нельзя закрыть честно до выполнения предыдущих exit criteria.
+### Protocol manifest — PASS for freeze, not for results
 
-## Аудит четырёх специализированных slices
+`research/protocol/PROTOCOL_MANIFEST_v0.1.md` фиксирует:
 
-### 1. Literature foundation — PARTIAL
+- пять моделей и их параметры/гриды наблюдений;
+- `sigma ∈ {0.01, 0.05, 0.10}`;
+- методы RK45, DOP853, Radau, BDF, LSODA;
+- четыре уровня `rtol/atol`;
+- seeds `0..9`;
+- per-model RHS caps;
+- reference solver policy and two-level convergence requirement;
+- primary/secondary endpoints;
+- paired mean differences and 95% bootstrap CI;
+- explicit no-advantage decision rule;
+- rule for retaining failures and deviations.
 
-Интеграция подтверждена:
+Это удовлетворяет exit criterion **protocol freeze**. Сам manifest не является выполненным экспериментом: в репозитории нет committed result package, подтверждающего, что все заявленные cells действительно были рассчитаны и прошли reference quality gate.
 
-- `research/literature_review/INCLUSION_EXCLUSION_PROTOCOL.md`;
-- `BIBLIOGRAPHY_LEDGER.md`;
-- `COMPARISON_MATRIX.md`;
-- `README.md`.
+**Exit criterion:** PASS для freeze; NOT MET для validation campaign until references and all declared runs are executed and archived.
 
-Зафиксированы Cao–Petzold, Lang–Verwer, probabilistic ODE work, Bayesian inverse problems, Tiemann et al., DALTON, SciPy, SUNDIALS и SciML. Документы корректно предупреждают, что gap и novelty пока не доказаны.
+### Literature foundation — PARTIAL
 
-Научный статус: **PARTIAL**, не PASS. `research/protocol/EXPERIMENT_PROTOCOL.md` прямо имеет статус `draft`; отсутствуют complete systematic screening, reproduction ближайшего inference-distortion baseline и final novelty decision после фиксации механизма контроллера. В public tree есть ссылки и сравнительная матрица, но нет evidence, что NUMERIS отличен от adjoint/goal-oriented или likelihood-aware методов.
+В `research/literature_review/` присутствуют inclusion/exclusion protocol, bibliography ledger, comparison matrix и verification dates/statuses. Рассмотрены Cao–Petzold, Lang–Verwer, probabilistic ODE solvers, Bayesian inverse problems, likelihood distortion, DALTON, SciPy, SUNDIALS и SciML.
 
-**Phase-I exit criterion: NOT MET.** Требуются frozen/committed configuration manifest, завершённый screening ledger, closest-baseline reproduction и post-mechanism novelty audit.
+Корректно зафиксировано, что adjoint/global error control, probabilistic ODE, likelihood-aware inference и solver-induced likelihood distortion уже существуют. Но остаются незакрытыми:
 
-### 2. Bayesian grid pipeline — PARTIAL
+- полный воспроизводимый search/screening record;
+- source-level reproduction ближайшего inference-distortion baseline;
+- line-by-line comparison зафиксированного NUMERIS-GO mechanism с adjoint/goal-oriented/probabilistic/DALTON mechanisms;
+- final novelty decision после фиксации реального алгоритма.
 
-Интеграция подтверждена:
+**Phase I:** **PARTIAL**.
+**Exit criteria:** completed screening ledger, closest-baseline reproduction, mechanism-level equivalence analysis, explicit novelty/no-novelty decision. Пока не выполнены — novelty claim запрещён.
 
-- `numeris/inference/bayesian_grid.py`;
-- exports из `numeris/inference/__init__.py`;
-- `tests/unit/test_bayesian_grid.py`;
-- `tests/integration/test_bayesian_inference_pipeline.py`;
-- успешный public import `GridPosterior`, `grid_posterior`, `posterior_distance`.
+### Bayesian inference and parameter recovery — PARTIAL
 
-Pipeline действительно оценивает Gaussian ODE likelihood на явной конечной сетке, нормализует posterior, даёт mode/mean/standard deviation/credible intervals и Hellinger/total-variation diagnostics. Это воспроизводимый low-dimensional diagnostic baseline.
+`numeris/inference/bayesian_grid.py` и `run_parameter_recovery(...)` действительно предоставляют:
 
-Научный статус: **PARTIAL**, не PASS. Модуль сам документирует ограничения: finite grid, scalar independent Gaussian noise, отсутствие MCMC convergence diagnostics, posterior predictive checks и hierarchical priors. Это не PyMC/NumPyro Bayesian sampling, не полноценная posterior reliability study и не доказательство posterior improvement NUMERIS-GO. В tracked `results/` отсутствует committed posterior comparison report.
+- deterministic finite-grid Gaussian posterior;
+- reproducible synthetic observations via seed;
+- MAP/mode, posterior mean, RMSE;
+- credible intervals and per-parameter coverage indicator;
+- solver settings and JSON-friendly summary;
+- Hellinger/total-variation diagnostics.
 
-**Phase-III Bayesian exit criterion: NOT MET.** Требуется заранее объявленный posterior protocol, grid/sampler convergence check, numerical-versus-statistical uncertainty separation, repeated seeds и posterior comparison against a converged reference.
+Ограничения явно указаны в коде и protocol manifest: это не MCMC/PyMC/NumPyro, нет convergence diagnostics, posterior predictive checks, repeated coverage calibration или posterior scientific claim. Поэтому API и 86 тестов подтверждают корректность baseline implementation, но не posterior reliability и не superiority NUMERIS-GO.
 
-### 3. Equal-budget / ablation validation — PARTIAL
+**Phase III Bayesian slice:** **PARTIAL**.
+**Exit criteria:** separately frozen Bayesian protocol, converged grid/sampler check, repeated seeds, statistical-vs-numerical uncertainty separation, posterior comparison against an independently converged reference. Не выполнены.
 
-Интеграция подтверждена:
+### Validation callbacks and ablation — PARTIAL
 
-- `numeris/benchmarks/validation.py`;
-- exports `BudgetCaps`, `AblationCase`, `predefined_solver_configs`, `run_equal_budget_comparison`, `run_ablation_cases`;
-- `tests/integration/test_validation.py`;
-- runtime smoke: paired equal-budget report и ablation report сформированы.
+`numeris/benchmarks/validation.py` теперь передаёт `policy_callback` в trial, сохраняет callback label и effective configuration, а тест подтверждает реальное прохождение callback path. Это исправляет прежний дефект, когда `disabled_components` могли быть только metadata.
 
-Положительные свойства реализации:
+Однако callback API всё ещё позволяет произвольным образом заменить `SolverConfig`; он не доказывает, что отключены именно отдельные NUMERIS-GO components:
 
-- paired seeds;
-- одинаковые sigma и reference для сравниваемых labels;
-- сохранение failures и budget violations;
-- JSON-friendly reports;
-- явная строка `scientific_claim: none`;
-- пять требуемых SciPy solver families присутствуют в predefined configs.
+- goal-oriented estimator;
+- temporal budget allocator;
+- reliability stopping criterion;
+- full policy.
 
-Критические ограничения:
+Также `BudgetCaps` проверяет расход после solver call, а не прерывает вычисление при исчерпании hard budget. Текущий runner в основном считает trajectory RMSE; он не выполняет полный protocol endpoint set для parameter RMSE, likelihood distortion, posterior distance, false-optimum rate и calibration.
 
-- `BudgetCaps` проверяет cap post hoc после завершения solver call; это не hard interruption и не строгая симуляция общего бюджета;
-- `target_error` в validation runner — trajectory RMSE относительно reference, а не полный набор primary endpoints из ТЗ: likelihood distortion, parameter RMSE, posterior distance, false-optimum rate и calibration;
-- `AblationCase` записывает `disabled_components` как metadata, но runner не переключает реальные estimator/allocation/stopping компоненты NUMERIS-GO; следовательно, это orchestration scaffold, а не доказанная ablation study;
-- результаты smoke-run не сохранены как frozen scientific artifact;
-- в tracked `results/` есть только `.gitkeep`, поэтому нет воспроизводимой таблицы equal-budget outcomes по пяти моделям/noise/budget factors.
+**Ablation status:** **PARTIAL infrastructure / FAIL as scientific evidence**.
+**Exit criteria:** actual estimator/allocation/stopping switches, hard budget enforcement or declared equivalent accounting, all primary endpoints, paired CIs, preserved baseline-better cases, and committed result artifacts.
 
-**Phase-IV validation exit criterion: NOT MET.** Требуются frozen protocol, converged independent references для всех пяти моделей, equal-budget inference runs, реальные controller ablations, paired confidence intervals, failure/negative-results ledger и calibration analysis.
+### Memory profiling and C++ — PARTIAL infrastructure / BLOCKED evidence
 
-### 4. Cross-platform memory / C++ gate — PARTIAL infrastructure, BLOCKED evidence
+`ProfileResult`, `ProfilingSummary`, RSS/peak-memory fallbacks и `scripts/profile_benchmark.py` работают и безопасно представляют unavailable measurements as `None`. Profiling summary records top cumulative functions and a measured hot-spot decision. Это PASS для profiling software slice.
 
-Интеграция подтверждена:
+Но public tree не содержит C++ kernel, pybind/nanobind binding, equivalence test или benchmark comparison. Текущий CLI профилирует один oscillator workload/один solver invocation, а `numerical_equivalence_verified` остаётся `False`. Windows `ctypes` fallback — memory API, не C++ implementation.
 
-- `numeris/budget/memory.py` содержит `ProfileResult`, RSS/peak-memory helpers, JSON-safe schema и optional-platform fallbacks;
-- `scripts/profile_benchmark.py` запускается и создаёт cProfile/JSON artifact;
-- `tests/unit/test_memory.py` покрывает schema/validation;
-- в текущей среде peak RSS был измерим через `resource`, текущий RSS через доступный backend был `unavailable`; это корректно отражено как `None`, а не подменено нулём;
-- `ProfileResult.cpp_gate` явно требует measured hot spot и numerical equivalence.
-
-C++ фактически отсутствует: поиск по public tree не обнаружил C++ kernel, pybind/nanobind binding или equivalence test. `ctypes` в `memory.py` — Windows API fallback для измерения памяти, не C++ implementation.
-
-`profile_benchmark.py` покрывает только один damped-oscillator workload и один solver invocation. Нет committed representative multi-model profiles, hot-spot attribution, isolated kernel interface, Python/C++ numerical equivalence, wall-time/memory comparison или maintenance-cost decision. Поэтому отсутствие C++ сейчас соответствует условному gate ТЗ: добавлять C++ без profiling evidence было бы фиктивным выполнением требования.
-
-**C++ gate: BLOCKED.** Сначала нужны representative profiling artifacts и reproducible hot-spot; только затем допустима реализация узкого C++ kernel, если измеренная польза превышает build/reproducibility cost.
+**C++ gate:** **BLOCKED**, не FAIL: ТЗ делает C++ условным и допускает его только после доказанного hot spot.
+**Exit criteria:** representative multi-model profiles; isolated hot spot; specified Python/C++ interface; numerical equivalence on declared tolerances; wall-time/RHS/memory comparison on same machine; measured benefit exceeding build and reproducibility cost. До этого C++ не должен быть добавлен формально ради соответствия.
 
 ## Phase gate против ТЗ
 
 ### Phase I — Research Foundation: **PARTIAL**
 
-Выполнены scope, initial bibliography и provisional comparison matrix. Не выполнены frozen protocol, complete systematic review, closest-baseline reproduction и final novelty decision.
-
-**Exit: NOT MET.**
+Protocol freeze и initial verified bibliography выполнены. Complete systematic review, closest-baseline reproduction и final gap/novelty decision отсутствуют.
 
 ### Phase II — Mathematical Core: **PARTIAL / BLOCKED for novelty claim**
 
-Есть:
-
-- формальная постановка constrained target/cost problem;
-- `SensitivityAwarePolicy` и temporal allocator как прототипы;
-- Gaussian NLL perturbation bound в `research/derivations/gaussian_target_bound.md` и `numeris/error_analysis/gaussian_bound.py`.
-
-Но Gaussian bound explicitly обозначен как known baseline. Текущий controller получает внешние sensitivity/state-error estimates; он не предоставляет solver-integrated validated goal-oriented estimator. Нет доказательств устойчивости/сходимости/coverage и нет line-by-line equivalence analysis с adjoint, probabilistic ODE и DALTON.
-
-**Exit: NOT MET.** Допустимая текущая формулировка — baseline/heuristic research prototype, не новый математический метод.
+Есть constrained target/cost formulation, sensitivity-aware policy prototype, temporal allocation и Gaussian likelihood perturbation bound. Но текущая реализация остаётся heuristic/baseline; нет solver-integrated validated goal-oriented estimator и доказательств новизны, convergence, stability или reliability coverage. Gaussian bound сам по себе не является новым результатом.
 
 ### Phase III — Software Laboratory: **PARTIAL**
 
-Основные модули и tests работают: модели, solver interface, observatory, Gaussian inference, grid posterior, budget ledger, validation scaffolding, memory profiling, visualization, reproducibility metadata и required benchmark factories.
-
-Не закрыты: end-to-end `ModelConfig` contract во всех paths, multi-start/uncertainty diagnostics, hard budget behavior, full inference-distortion decomposition, full posterior protocol, five-model research matrix и complete scientific reporting. Software tests PASS, но это не означает scientific compliance.
-
-**Exit: NOT MET.**
+Основные модели, solver interface, error observatory, inference, finite-grid Bayesian diagnostic, budget, validation callbacks, profiling, reproducibility, visualization, CLI и тесты присутствуют. Software acceptance для текущего API — **PASS** (`86 passed`), но полная acceptance по ТЗ не закрыта из-за отсутствия hard-budget semantics, complete experiment reporting и end-to-end scientific integration.
 
 ### Phase IV — Scientific Validation: **FAIL**
 
-Нет tracked evidence для:
+В HEAD отсутствуют committed evidence для:
 
-- five-model repeated equal-budget inference matrix;
-- parameter-recovery experiments;
-- likelihood distortion study;
-- posterior-distance study against reference;
-- false-optimum rate experiment;
-- actual estimator/allocation/stopping ablations;
-- reliability calibration coverage;
-- statistical significance and confidence intervals;
-- explicit populated negative-results ledger.
-
-API и smoke tests не заменяют эти результаты.
-
-**Exit: NOT MET.**
+- пяти моделей × объявленных noise/seed/solver/tolerance/budget cells;
+- independently converged references;
+- likelihood distortion and parameter-recovery result tables;
+- posterior-distance study under a frozen Bayesian protocol;
+- false-optimum experiment;
+- actual NUMERIS-GO component ablation;
+- reliability calibration coverage/mean excess over repeated runs;
+- paired confidence intervals and statistical decision;
+- populated negative-results ledger.
 
 ### Phase V — Publication readiness: **BLOCKED**
 
-Нет установленного scientific contribution, final method comparison, manuscript, publication-quality figures/tables или independent reproduction package. Публикация не может быть заявлена.
+Нет установленного scientific contribution, validated superiority/non-inferiority result, publication-quality figures/tables, manuscript или independent reproduction package. Публикация не следует автоматически из успешных тестов.
 
-**Exit: BLOCKED by Phases I–IV.**
+## Точные exit criteria для следующего gate
 
-## Required next exit criteria
+1. **Research Foundation:** complete dated screening ledger; reproduce nearest likelihood-distortion baseline; compare the frozen mechanism line-by-line with adjoint/goal-oriented, probabilistic ODE and DALTON; record novelty decision, including no-novelty outcome.
+2. **Reference quality:** for each of OSC/FHN/LV/LOR/ROB, pass the manifest’s two-level tolerance convergence and independent solver-family check; otherwise label model `REFERENCE-UNRESOLVED` and exclude it from superiority claims.
+3. **Frozen campaign:** execute the exact manifest over all declared models, 10 seeds, 3 noise levels, 5 methods and 4 tolerance levels; retain failures and out-of-budget trials; commit machine-readable result summaries and manifest commit hash.
+4. **Primary endpoints:** report likelihood distortion and parameter RMSE per paired cell; include RHS evaluations, runtime, peak RSS, failure rate and budget violations.
+5. **Statistics:** compute predeclared paired mean differences with two-sided 95% bootstrap CIs over seeds; do not select seeds/factors after observing outcomes.
+6. **Controller integration:** connect the actual estimator, allocator and stopping components to the validation runner; expose effective decisions and costs; enforce or explicitly justify budget accounting.
+7. **Ablation:** execute estimator-only, allocation-only, stopping-only and full-policy arms; show that each arm changes behavior, not just metadata; preserve baseline-better and failed cases.
+8. **Bayesian evidence:** if claiming posterior results, add a separate frozen protocol, grid/sampler convergence checks, repeated coverage calibration, posterior distance to an independently converged reference, and statistical-vs-numerical uncertainty separation. Otherwise keep posterior claims excluded.
+9. **Reliability:** evaluate every emitted error estimate against independent actual error; report coverage and mean excess; reject reliability claims on systematic overconfidence.
+10. **C++ decision:** run representative profiles; implement C++ only if all C++ gate criteria pass; otherwise commit a negative profiling decision and keep Python.
+11. **Negative results:** populate `research/negative_results.md` with every failure, budget exhaustion, calibration failure, baseline-better case and applicability limitation.
+12. **Publication:** only after Phases I–IV close, prepare manuscript, figures/tables, limitations, code/data reproduction instructions and independent rerun evidence.
 
-1. Freeze and commit the exact experiment manifest before scientific runs.
-2. Complete source-level literature screening and reproduce the closest inference-distortion result.
-3. Freeze the controller mechanism and perform equivalence analysis against known methods.
-4. Generate converged, independently checked references for oscillator, FitzHugh–Nagumo, Lotka–Volterra, Lorenz and Robertson.
-5. Run paired equal-budget experiments over declared seeds, noise levels, tolerances and budgets.
-6. Connect validation to actual NUMERIS-GO estimator, allocation and stopping switches; otherwise label it baseline-only.
-7. Report parameter RMSE, likelihood error, posterior distance, false-optimum rate, RHS evaluations, runtime, peak RAM, failure rate and calibration.
-8. Preserve failed and baseline-better runs in `research/negative_results.md` and commit machine-readable reports.
-9. Run the profiling gate over representative workloads. Implement C++ only if a reproducible hot spot, isolated interface, numerical equivalence and measured benefit are all present.
-10. Only after these gates, prepare manuscript and independent reproduction instructions.
+## Final public claim permitted by this audit
 
-## Final public claim allowed by this audit
-
-> NUMERIS HEAD `4abf235` is a locally runnable, tested deterministic research prototype with literature, Bayesian-grid, validation-scaffold and memory-profiling infrastructure. It is not yet a validated novel method, not evidence of superiority over existing solvers, not a completed Bayesian scientific study, and not publication-ready.
+> NUMERIS HEAD `d634249` is a locally runnable, tested deterministic research prototype with a frozen experiment manifest, verified literature ledger, finite-grid Bayesian parameter-recovery diagnostics, validation callback infrastructure, and memory profiling. It is not yet a validated novel method, not evidence of superiority over existing solvers, not a completed Bayesian scientific study, and not publication-ready.
