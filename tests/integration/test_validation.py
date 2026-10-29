@@ -106,3 +106,56 @@ def test_ablation_cases_preserve_case_metadata_and_pairing():
     assert case["paired"]["n_pairs"] == 2
     json.dumps(report, allow_nan=False)
 
+
+def test_ablation_callback_changes_the_evaluated_policy_path():
+    model, params, reference = _fixture()
+    callback_seeds = []
+
+    def without_temporal_allocation(config, context):
+        callback_seeds.append(context["seed"])
+        assert context["disabled_components"] == ("temporal_allocation",)
+        # The callback represents the ablated policy: it deliberately selects
+        # a different solver path instead of merely recording metadata.
+        return SolverConfig(
+            name="ablated-RK45",
+            method="RK45",
+            rtol=config.rtol,
+            atol=config.atol,
+            max_step=config.max_step,
+        )
+
+    report = run_ablation_cases(
+        model,
+        params,
+        seeds=[5, 6],
+        sigma=0.05,
+        reference_states=reference,
+        cases=[
+            AblationCase(
+                "without_temporal_allocation",
+                baseline=SolverConfig("base", method="RK45"),
+                policy=SolverConfig("candidate", method="DOP853"),
+                disabled_components=("temporal_allocation",),
+                policy_callback=without_temporal_allocation,
+                policy_label="disable-temporal-allocation",
+            )
+        ],
+        budget_caps={"max_rhs_evals": 100_000},
+    )
+
+    case = report["cases"][0]
+    assert case["policy_callback"] == "disable-temporal-allocation"
+    assert case["ablation"]["policy_callback"] == "disable-temporal-allocation"
+    assert callback_seeds == [5, 6]
+    assert all(
+        trial["config"]["name"] == "ablated-RK45"
+        and trial["config"]["method"] == "RK45"
+        for trial in case["results"]["policy"]["trials"]
+    )
+    assert all(
+        trial["config"]["method"] == "RK45"
+        for trial in case["results"]["baseline"]["trials"]
+    )
+    assert case["scientific_claim"].startswith("none")
+    json.dumps(report, allow_nan=False)
+

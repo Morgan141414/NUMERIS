@@ -31,6 +31,11 @@ DEFAULT_SOLVER_CONFIGS: tuple[SolverConfig, ...] = (
 )
 
 
+PolicyCallback = Callable[
+    [SolverConfig, Mapping[str, Any]], SolverConfig | Mapping[str, Any]
+]
+
+
 def predefined_solver_configs() -> tuple[SolverConfig, ...]:
     """Return fresh copies of the five predefined SciPy configurations."""
     return tuple(
@@ -93,6 +98,8 @@ class AblationCase:
     policy: SolverConfig | Mapping[str, Any]
     disabled_components: tuple[str, ...] = ()
     description: str = ""
+    policy_callback: PolicyCallback | None = None
+    policy_label: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -101,6 +108,8 @@ class AblationCase:
             "policy": _config(self.policy).as_dict(),
             "disabled_components": list(self.disabled_components),
             "description": self.description,
+            "policy_callback": self.policy_label
+            or (self.policy_callback.__name__ if self.policy_callback else None),
         }
 
 
@@ -127,6 +136,9 @@ def _run_labelled_trial(
     sigma: float,
     reference_states: np.ndarray,
     caps: BudgetCaps,
+    *,
+    policy_callback: PolicyCallback | None = None,
+    policy_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     model = _as_model(factory_or_model, seed)
     reference = np.asarray(reference_states, dtype=float)
@@ -135,10 +147,24 @@ def _run_labelled_trial(
         0.0, sigma, size=clean_observations.shape
     )
     try:
+        effective_config = config
+        if policy_callback is not None:
+            callback_context = dict(policy_context or {})
+            callback_context.update(
+                {
+                    "seed": int(seed),
+                    "model": model,
+                    "params": np.asarray(params, dtype=float),
+                    "sigma": float(sigma),
+                    "reference_states": reference,
+                    "observations": observations,
+                }
+            )
+            effective_config = _config(policy_callback(config, callback_context))
         result = run_solver_configuration(
             model,
             np.asarray(params, dtype=float),
-            config,
+            effective_config,
             observations=observations,
             sigma=sigma,
             reference_states=reference,
@@ -150,6 +176,7 @@ def _run_labelled_trial(
             "success": bool(result["success"]),
             "target_error": _finite_or_none(target_error),
             "budget": budget,
+            "config": effective_config.as_dict(),
             "result": result,
         }
     except Exception as exc:  # failures remain visible as validation data
@@ -193,6 +220,9 @@ def run_equal_budget_comparison(
     baseline_label: str = "baseline",
     policy_label: str = "policy",
     name: str = "equal_budget_comparison",
+    policy_callback: PolicyCallback | None = None,
+    policy_callback_label: str | None = None,
+    policy_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run two labelled configurations on paired seeds under common caps."""
     if sigma <= 0 or not np.isfinite(sigma):
@@ -207,7 +237,15 @@ def run_equal_budget_comparison(
     trials = {
         label: [
             _run_labelled_trial(
-                factory_or_model, params, config, seed, sigma, reference_states, caps
+                factory_or_model,
+                params,
+                config,
+                seed,
+                sigma,
+                reference_states,
+                caps,
+                policy_callback=policy_callback if label == policy_label else None,
+                policy_context=policy_context,
             )
             for seed in seed_values
         ]
@@ -240,6 +278,8 @@ def run_equal_budget_comparison(
         "sigma": float(sigma),
         "budget_caps": caps.as_dict(),
         "configurations": {label: config.as_dict() for label, config in configs.items()},
+        "policy_callback": policy_callback_label
+        or (policy_callback.__name__ if policy_callback else None),
         "results": {
             label: {"label": label, "trials": trials[label], "summary": _label_summary(trials[label])}
             for label in configs
@@ -280,6 +320,13 @@ def run_ablation_cases(
             policy=case.policy,
             budget_caps=budget_caps,
             name=f"{name}:{case.name}",
+            policy_callback=case.policy_callback,
+            policy_callback_label=case.policy_label,
+            policy_context={
+                "ablation_case": case.name,
+                "disabled_components": tuple(case.disabled_components),
+                "description": case.description,
+            },
         )
         report["ablation"] = case.as_dict()
         reports.append(report)
