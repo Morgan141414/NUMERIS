@@ -11,7 +11,9 @@ core.
 The relevant tooling is:
 
 - `scripts/profile_benchmark.py` for a `cProfile` workload and a structured
-  `ProfileResult` JSON record;
+  `ProfileResult` JSON record. Its `--suite` mode profiles three deterministic
+  representative workloads: `oscillator` (non-stiff baseline),
+  `fitzhugh_nagumo` (nonlinear dynamics), and `robertson` (stiff dynamics);
 - `scripts/check_cpp_gate.py` for a conservative, evidence-only gate check;
 - `numeris.budget.memory` for best-effort RSS/high-water-mark measurements;
 - `research/protocol/EXPERIMENT_PROTOCOL.md` for the requirement to preserve a
@@ -116,10 +118,36 @@ changing the benchmark after seeing an unfavorable result.
 
 ## Current evidence and decision
 
-The current profiling run used one damped-oscillator `DOP853` invocation. It
-measured `solve_ode` as the top cumulative function and exceeded the default
-hotspot threshold, so the CLI correctly reports `investigate_cpp`. The same
-record reports `numerical_equivalence_verified: false`.
+The profiling workflow can collect the representative workload set with:
+
+```bash
+python scripts/profile_benchmark.py --suite \
+  --output results/profiles/profile_suite.prof \
+  --result-output results/profiles/profile_suite.json
+```
+
+Suite mode writes one profile and one JSON record per workload:
+`profile_oscillator.json`, `profile_fitzhugh_nagumo.json`, and
+`profile_robertson.json`. The solver method is declared per workload: DOP853
+for the two non-stiff cases and BDF for Robertson. This is a small deterministic
+screening workload, not the scientific benchmark campaign or proof of a C++
+benefit.
+
+The resulting records can be passed independently to the fail-closed gate:
+
+```bash
+python scripts/check_cpp_gate.py \
+  --profile results/profiles/profile_oscillator.json \
+  --profile results/profiles/profile_fitzhugh_nagumo.json \
+  --profile results/profiles/profile_robertson.json \
+  --evidence results/cpp_candidate_evidence.json
+```
+
+The suite measures `solve_ode` as a candidate hotspot when the configured
+threshold is met, but every record still reports
+`numerical_equivalence_verified: false`. Without a real evidence file with
+equivalence, warm-up-excluded speed, comparable memory, and reproducibility,
+the gate must return `KEEP_PYTHON`.
 
 This is not enough to authorize production C++:
 
@@ -148,13 +176,8 @@ the equivalence gate be implemented.
 
 The gate can be checked without adding or compiling C++:
 
-```bash
-python scripts/check_cpp_gate.py \
-  --profile results/profile_oscillator.json \
-  --profile results/profile_fitzhugh_nagumo.json \
-  --profile results/profile_robertson.json \
-  --evidence results/cpp_candidate_evidence.json
-```
+The gate invocation above is the canonical smoke check; missing evidence is
+expected to remain a non-approval (`KEEP_PYTHON`, exit status 1).
 
 The evidence file is an experiment artifact, not a declaration. Its required
 shape is:
