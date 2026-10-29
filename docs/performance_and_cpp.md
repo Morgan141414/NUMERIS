@@ -12,6 +12,7 @@ The relevant tooling is:
 
 - `scripts/profile_benchmark.py` for a `cProfile` workload and a structured
   `ProfileResult` JSON record;
+- `scripts/check_cpp_gate.py` for a conservative, evidence-only gate check;
 - `numeris.budget.memory` for best-effort RSS/high-water-mark measurements;
 - `research/protocol/EXPERIMENT_PROTOCOL.md` for the requirement to preserve a
   negative C++ decision when the evidence is insufficient.
@@ -142,4 +143,59 @@ optional optimization after demonstrated need, not a mandatory first-version
 dependency. The next permissible step is to collect representative profiles;
 only if the hotspot remains material should a narrowly scoped candidate and
 the equivalence gate be implemented.
+
+## Evidence-only smoke check
+
+The gate can be checked without adding or compiling C++:
+
+```bash
+python scripts/check_cpp_gate.py \
+  --profile results/profile_oscillator.json \
+  --profile results/profile_fitzhugh_nagumo.json \
+  --profile results/profile_robertson.json \
+  --evidence results/cpp_candidate_evidence.json
+```
+
+The evidence file is an experiment artifact, not a declaration. Its required
+shape is:
+
+```json
+{
+  "hotspot": {
+    "representative_workloads": true,
+    "repeated": true,
+    "replaceable": true,
+    "material": true
+  },
+  "equivalence": {
+    "verified": true,
+    "normal_cases": true,
+    "difficult_cases": true,
+    "near_failure_cases": true,
+    "tolerance_declared": true
+  },
+  "speed": {
+    "median_speedup": 1.25,
+    "warmup_excluded": true,
+    "repeated_measurements": true,
+    "no_material_regression": true
+  },
+  "memory": {
+    "measured_comparably": true,
+    "within_budget": true
+  },
+  "reproducibility": {
+    "build_reproducible": true,
+    "interface_documented": true,
+    "deterministic": true,
+    "artifacts_reproducible": true
+  }
+}
+```
+
+The script returns `KEEP_PYTHON` and exit status 1 when the evidence file is
+missing, incomplete, malformed, or any predicate fails. It requires at least
+three successful profiles from distinct workloads by default. A profile that
+only reports a hotspot is not enough: equivalence, warm-up-excluded median
+speedup, comparable memory, and reproducibility remain independent gates.
 
