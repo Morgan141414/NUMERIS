@@ -28,6 +28,7 @@ from numeris.solvers.scipy_solver import solve_ode
 
 from .distances import hellinger_distance
 from .gaussian import gaussian_negative_log_likelihood
+from .metrics import parameter_rmse
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,47 @@ class GridPosterior:
         }
 
 
+@dataclass(frozen=True)
+class ParameterRecoveryResult:
+    """Reproducible summary of one low-dimensional parameter-recovery run.
+
+    The result describes recovery on the supplied finite grid only.  It is not
+    evidence that the grid posterior is calibrated, that the solver is
+    superior to another solver, or that the scientific model is correct.
+    """
+
+    truth: np.ndarray
+    map_estimate: np.ndarray
+    posterior_mean: np.ndarray
+    map_rmse: float
+    mean_rmse: float
+    credible_intervals: np.ndarray
+    credible_interval_coverage: np.ndarray
+    credible_level: float
+    solver_settings: dict[str, object]
+    posterior: GridPosterior
+    limitations: tuple[str, ...] = (
+        "Posterior inference is a finite-grid approximation, not MCMC.",
+        "Coverage is a single-run diagnostic, not a calibration study.",
+        "This result makes no superiority or novelty claim.",
+    )
+
+    def summary(self) -> dict[str, object]:
+        """Return a JSON-friendly result summary without posterior arrays."""
+        return {
+            "truth": self.truth.tolist(),
+            "map_estimate": self.map_estimate.tolist(),
+            "posterior_mean": self.posterior_mean.tolist(),
+            "map_rmse": self.map_rmse,
+            "mean_rmse": self.mean_rmse,
+            "credible_intervals": self.credible_intervals.tolist(),
+            "credible_interval_coverage": self.credible_interval_coverage.tolist(),
+            "credible_level": self.credible_level,
+            "solver_settings": dict(self.solver_settings),
+            "limitations": list(self.limitations),
+        }
+
+
 def grid_posterior(
     model: ODEModel,
     observations: np.ndarray,
@@ -151,6 +193,96 @@ def grid_posterior(
     return GridPosterior(grid, log_likelihood, prior, posterior, names, method, rtol, atol)
 
 
+def run_parameter_recovery(
+    model: ODEModel,
+    truth: Sequence[float] | np.ndarray,
+    sigma: float,
+    parameter_grid: np.ndarray | Sequence[Sequence[float]],
+    *,
+    seed: int = 0,
+    observations: np.ndarray | None = None,
+    log_prior: np.ndarray | None = None,
+    parameter_names: Sequence[str] | None = None,
+    method: str = "DOP853",
+    rtol: float = 1e-8,
+    atol: float = 1e-10,
+    credible_level: float = 0.95,
+) -> ParameterRecoveryResult:
+    """Run one reproducible synthetic-data parameter-recovery experiment.
+
+    If ``observations`` is omitted, the truth trajectory is solved with the
+    same solver settings and independent Gaussian noise is added using
+    ``seed``.  Passing observations permits evaluation on an external dataset
+    while retaining the same inference protocol.  Coverage is reported per
+    parameter as whether truth lies inside the finite-grid equal-tail interval.
+
+    This helper is intentionally a diagnostic baseline.  It does not perform
+    repeated coverage calibration, MCMC, posterior predictive checks, or an
+    equal-budget comparison, and it does not establish scientific superiority.
+    """
+    truth_array = np.asarray(truth, dtype=float)
+    grid = np.asarray(parameter_grid, dtype=float)
+    if truth_array.ndim != 1 or truth_array.size == 0 or not np.all(np.isfinite(truth_array)):
+        raise ValueError("truth must be a finite, non-empty 1-D vector")
+    if grid.ndim != 2 or grid.shape[1] != truth_array.size:
+        raise ValueError("truth dimensionality must match parameter_grid")
+    if not 0.0 < credible_level < 1.0:
+        raise ValueError("credible_level must be between zero and one")
+    if not isinstance(seed, (int, np.integer)):
+        raise ValueError("seed must be an integer")
+
+    reference = solve_ode(model, truth_array, method=method, rtol=rtol, atol=atol)
+    if not reference.success:
+        raise RuntimeError(f"truth ODE solve failed: {reference.message}")
+    clean_observations = np.asarray(model.observe(reference.states), dtype=float)
+    if observations is None:
+        rng = np.random.default_rng(int(seed))
+        observed = clean_observations + rng.normal(0.0, sigma, size=clean_observations.shape)
+    else:
+        observed = np.asarray(observations, dtype=float)
+        if observed.shape != clean_observations.shape:
+            raise ValueError("observations must match the model observation shape")
+        if not np.all(np.isfinite(observed)):
+            raise ValueError("observations must be finite")
+
+    posterior = grid_posterior(
+        model,
+        observed,
+        sigma,
+        grid,
+        log_prior=log_prior,
+        parameter_names=parameter_names,
+        method=method,
+        rtol=rtol,
+        atol=atol,
+    )
+    intervals = posterior.credible_intervals(credible_level)
+    mean = posterior.mean()
+    mode = posterior.mode
+    coverage = (intervals[:, 0] <= truth_array) & (truth_array <= intervals[:, 1])
+    settings = {
+        "method": method,
+        "rtol": float(rtol),
+        "atol": float(atol),
+        "sigma": float(sigma),
+        "seed": int(seed),
+        "credible_level": float(credible_level),
+        "observation_source": "synthetic" if observations is None else "provided",
+    }
+    return ParameterRecoveryResult(
+        truth=truth_array.copy(),
+        map_estimate=mode,
+        posterior_mean=mean,
+        map_rmse=parameter_rmse(truth_array, mode),
+        mean_rmse=parameter_rmse(truth_array, mean),
+        credible_intervals=intervals,
+        credible_interval_coverage=coverage,
+        credible_level=float(credible_level),
+        solver_settings=settings,
+        posterior=posterior,
+    )
+
+
 def posterior_distance(p: GridPosterior | np.ndarray, q: GridPosterior | np.ndarray,
                        *, metric: str = "hellinger") -> float:
     """Compare posterior masses using Hellinger or total-variation distance."""
@@ -191,4 +323,10 @@ def _weighted_quantile(values: np.ndarray, weights: np.ndarray, quantile: float)
     return float(sorted_values[min(index, len(sorted_values) - 1)])
 
 
-__all__ = ["GridPosterior", "grid_posterior", "posterior_distance"]
+__all__ = [
+    "GridPosterior",
+    "ParameterRecoveryResult",
+    "grid_posterior",
+    "posterior_distance",
+    "run_parameter_recovery",
+]

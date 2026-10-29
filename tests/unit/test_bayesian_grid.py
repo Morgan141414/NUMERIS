@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from numeris.inference import GridPosterior, grid_posterior, posterior_distance
+from numeris.inference import (
+    GridPosterior,
+    grid_posterior,
+    posterior_distance,
+    run_parameter_recovery,
+)
 from numeris.models import ODEModel
 
 
@@ -50,3 +55,47 @@ def test_grid_posterior_validates_shape_and_names():
 def test_posterior_distance_rejects_unknown_metric():
     with pytest.raises(ValueError, match="metric"):
         posterior_distance(np.array([0.5, 0.5]), np.array([0.5, 0.5]), metric="unknown")
+
+
+def test_parameter_recovery_returns_reproducible_summary_and_coverage():
+    model = _decay_model()
+    grid = np.array([[0.5], [0.7], [0.9]])
+    first = run_parameter_recovery(
+        model, [0.7], 0.01, grid, seed=12, parameter_names=["rate"],
+    )
+    second = run_parameter_recovery(
+        model, [0.7], 0.01, grid, seed=12, parameter_names=["rate"],
+    )
+
+    assert first.map_estimate[0] == pytest.approx(0.7)
+    assert first.posterior_mean.shape == (1,)
+    assert first.map_rmse == pytest.approx(0.0)
+    assert first.credible_interval_coverage.tolist() == [True]
+    assert first.solver_settings == second.solver_settings
+    assert np.allclose(first.posterior.posterior, second.posterior.posterior)
+    assert "no superiority" in " ".join(first.limitations)
+    assert first.summary()["truth"] == [0.7]
+
+
+def test_parameter_recovery_accepts_provided_observations_and_validates_inputs():
+    model = _decay_model()
+    grid = np.array([[0.5], [0.7], [0.9]])
+    observations = np.exp(-0.7 * model.observation_times)[:, None]
+    result = run_parameter_recovery(
+        model,
+        [0.7],
+        0.02,
+        grid,
+        observations=observations,
+        seed=3,
+        method="RK45",
+        rtol=1e-6,
+        atol=1e-8,
+    )
+    assert result.solver_settings["observation_source"] == "provided"
+    assert result.solver_settings["method"] == "RK45"
+    assert result.solver_settings["rtol"] == pytest.approx(1e-6)
+    with pytest.raises(ValueError, match="truth dimensionality"):
+        run_parameter_recovery(model, [0.7, 0.1], 0.02, grid)
+    with pytest.raises(ValueError, match="observations must match"):
+        run_parameter_recovery(model, [0.7], 0.02, grid, observations=np.ones((2, 1)))
