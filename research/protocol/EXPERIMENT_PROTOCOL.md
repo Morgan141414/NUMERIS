@@ -2,6 +2,14 @@
 
 Status: protocol frozen as v0.1 on 2026-10-30; exact run configuration is binding in `PROTOCOL_MANIFEST_v0.1.md`.
 
+Research-foundation dependency: Phase-I literature and closest-baseline
+reproduction status are governed by
+`../literature_review/CLOSEST_BASELINE_REPRODUCTION_PLAN.md` and
+`../literature_review/PHASE_I_EXIT_CRITERIA.md`. The deterministic v0.1
+campaign must not be described as a reproduction of an adjoint, goal-oriented,
+probabilistic, or likelihood-aware method unless the corresponding baseline
+card and deviation record are complete.
+
 ## Scope
 
 Deterministic parameterized ODEs with Gaussian observation noise on a local Apple Silicon/macOS-compatible Python environment. Models: damped oscillator, FitzHugh–Nagumo, Lotka–Volterra, Lorenz, Robertson. The primary deterministic target is likelihood error at a fixed RHS-evaluation budget; parameter RMSE is a co-primary endpoint for parameter-recovery runs. Posterior distances are secondary until the Bayesian sampler protocol is implemented.
@@ -21,6 +29,14 @@ Deterministic parameterized ODEs with Gaussian observation noise on a local Appl
 2. NUMERIS target-error baseline with the same solver and budget.
 3. Sensitivity-aware policy with estimator-only, allocation-only, stopping-only, and full-policy ablations.
 4. A failed/over-budget run is retained and counted, not removed.
+
+## Closest-baseline status gate
+
+Before interpreting a result as a research comparison, record the status of
+each relevant comparator as `R0`, `R1`, `R2`, `R3`, `NOT-REPRODUCED`, or
+`BLOCKED`, following the literature reproduction plan. A SciPy solver run is a
+standard deterministic baseline; it is not evidence that an adjoint,
+goal-oriented, probabilistic, or DALTON baseline was reproduced.
 
 ## Metrics
 

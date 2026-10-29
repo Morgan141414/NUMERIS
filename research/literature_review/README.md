@@ -14,11 +14,11 @@ Status: initial evidence-backed review. The review is governed by `INCLUSION_EXC
 |---|---|---|---|
 | Cao & Petzold (2004) | Adjoint-based a posteriori error estimation and global error control for ODE initial-value problems | Adjoint error estimation is prior art; NUMERIS cannot claim it as its own contribution | [SIAM DOI](https://doi.org/10.1137/S1064827503420969) |
 | Lang & Verwer (2007) | Global error estimation/control comparison using adjoint and variational approaches | Goal-oriented global control has additional prior art | [SIAM DOI](https://doi.org/10.1137/050646950) |
-| Chkrebtii et al. (2016) | Bayesian treatment of numerical uncertainty in differential-equation models | Probabilistic numerical uncertainty and Bayesian calibration are established | [Bayesian Analysis DOI](https://doi.org/10.1214/15-BA956) |
+| Chkrebtii et al. (2016) | Bayesian treatment of numerical uncertainty in differential-equation models | Probabilistic numerical uncertainty and Bayesian calibration are established | [Bayesian Analysis DOI](https://doi.org/10.1214/16-BA1017) |
 | Bosch, Hennig & Tronarp (2021) | Calibrated adaptive probabilistic ODE solvers | Reliability calibration is an existing research direction; NUMERIS must compare or clearly distinguish its target | [PMLR](https://proceedings.mlr.press/v130/bosch21a.html) |
 | Krämer & Hennig (2024) | Stable implementation of high-order probabilistic ODE solvers | Probabilistic solvers are practical baselines, not a future-only concept | [JMLR](https://www.jmlr.org/papers/volume25/20-1423.html) |
 | Wu et al. (2024), DALTON | Data-adaptive probabilistic likelihood approximation for ODE parameter inference | Likelihood-aware parameter inference already has a close competitor | [PMLR](https://proceedings.mlr.press/v238/wu24b.html) |
-| Tiemann et al. (2024) | Empirical analysis of ODE solver error distorting likelihood surfaces and creating phantom optima | The motivating problem is published; NUMERIS must reproduce/extend rather than rediscover it | [PMC article](https://pmc.ncbi.nlm.nih.gov/articles/PMC10914510/) |
+| Creswell et al. (2024) | Empirical analysis of ODE solver error distorting likelihood surfaces and creating phantom optima | The motivating problem is published; NUMERIS must reproduce/extend rather than rediscover it | [Royal Society / PMC article](https://pmc.ncbi.nlm.nih.gov/articles/PMC10914510/) |
 
 ## Mechanism comparison
 
@@ -43,6 +43,11 @@ This question is only publishable if the final mechanism is not equivalent to pr
 - [x] Primary related-work ledger with direct sources.
 - [x] Explicit separation of established mechanisms and the NUMERIS hypothesis.
 - [x] Provisional research-gap question.
-- [ ] Systematic inclusion/exclusion protocol and complete bibliography.
-- [ ] Reproduction of the closest inference-distortion baseline.
-- [ ] Final novelty decision after mathematical mechanism is fixed.
+- [x] Systematic inclusion/exclusion protocol and versioned evidence ledger.
+- [ ] Reproduction of the closest inference-distortion baseline, according to the reproducibility plan.
+- [ ] Final novelty decision after mathematical mechanism is fixed; until then, the only permitted status is `UNRESOLVED`.
+
+The operational definition of these exit criteria is in
+[`PHASE_I_EXIT_CRITERIA.md`](PHASE_I_EXIT_CRITERIA.md). The closest-baseline
+reproduction plan is in
+[`CLOSEST_BASELINE_REPRODUCTION_PLAN.md`](CLOSEST_BASELINE_REPRODUCTION_PLAN.md).
