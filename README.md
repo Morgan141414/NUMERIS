@@ -22,9 +22,9 @@ The private technical specification is stored locally at `private/TECHNICAL_SPEC
 
 ## Research status
 
-- Phase I: repository and reproducibility foundation — in progress.
-- Phase II: mathematical method — explicitly open; no novelty claim is made.
-- Phase III: benchmark laboratory — initial deterministic scaffold.
+- Phase I: repository and reproducibility foundation — implemented.
+- Phase II: mathematical method — an explicit falsifiable heuristic exists; novelty and guarantees remain open.
+- Phase III: benchmark laboratory — five-model deterministic slice and CLI implemented.
 
 ## Design principles
 
@@ -32,6 +32,14 @@ The private technical specification is stored locally at `private/TECHNICAL_SPEC
 2. Keep solver, inference, budget, and controller interfaces independent.
 3. Record computational cost and numerical settings with every run.
 4. Treat the controller as a hypothesis to test, including cases where it loses.
+
+Run the complete deterministic slice with:
+
+```bash
+python scripts/run_all_benchmarks.py --solver BDF --seed 3
+```
+
+Use matched solver matrices and independently converged references before drawing scientific conclusions.
 
 ## License
 
