@@ -26,6 +26,12 @@ The private technical specification is stored locally at `private/TECHNICAL_SPEC
 - Phase II: mathematical method — an explicit falsifiable heuristic exists; novelty and guarantees remain open.
 - Phase III: benchmark laboratory — five-model deterministic slice and CLI implemented.
 
+## Public project contents
+
+The public repository contains only source code, tests, documentation, and reproducible experiment entry points. Generated reports under `results/` and the internal specification under `private/` are intentionally excluded from Git.
+
+Continuous integration runs the test suite on Python 3.10–3.13. See [CONTRIBUTING.md](CONTRIBUTING.md) for the local validation workflow and [CHANGELOG.md](CHANGELOG.md) for the current release scope.
+
 ## Design principles
 
 1. Compare scientific target error, not only trajectory error.
