@@ -2,7 +2,7 @@
 
 Дата аудита: 2026-10-30 (Asia/Almaty)
 Аудируемый объект: текущий `HEAD`
-HEAD: `22e1f8725d3c126b20b24c6ed520f333d2645db8` (`22e1f87`)
+HEAD: `ad68379` (`ad68379`)
 Источник требований: локальный read-only `private/TECHNICAL_SPEC.md`
 Ограничение публикации: private ТЗ не публикуется, не отслеживается Git и не входит в публичный архив.
 Изменения аудита: изменён только этот файл; code, `research/`, `docs/` и private ТЗ не изменялись. Push не выполняется.
@@ -69,4 +69,4 @@ Validated scientific contribution, superiority/non-inferiority result, complete 
 
 ## Permitted public claim
 
-> NUMERIS HEAD `22e1f87` — локально запускаемый, протестированный deterministic research prototype с frozen experiment manifest, baseline-reproduction protocol, finite-grid Bayesian diagnostics, reproducible reference/validation helpers и fail-closed optional C++ gate. Он не является подтверждённо новым методом, доказанно превосходящим стандартные решатели, завершённым Bayesian study или publication-ready результатом.
+> NUMERIS HEAD `ad68379` — локально запускаемый, протестированный deterministic research prototype с frozen experiment manifest, baseline-reproduction protocol, finite-grid Bayesian diagnostics, reproducible reference/validation helpers и fail-closed optional C++ gate. Он не является подтверждённо новым методом, доказанно превосходящим стандартные решатели, завершённым Bayesian study или publication-ready результатом.
