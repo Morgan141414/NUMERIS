@@ -15,6 +15,12 @@ from .validation import (
     run_equal_budget_comparison,
 )
 from .validation_report import ValidationCase, run_validation_suite
+from .frozen_campaign import (
+    FrozenCampaignFactors,
+    FrozenModelSpec,
+    load_frozen_manifest,
+    run_frozen_campaign,
+)
 
 __all__ = [
     "damped_oscillator",
@@ -35,4 +41,8 @@ __all__ = [
     "run_equal_budget_comparison",
     "ValidationCase",
     "run_validation_suite",
+    "FrozenCampaignFactors",
+    "FrozenModelSpec",
+    "load_frozen_manifest",
+    "run_frozen_campaign",
 ]
