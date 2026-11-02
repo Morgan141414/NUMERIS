@@ -15,6 +15,8 @@ The relevant tooling is:
   representative workloads: `oscillator` (non-stiff baseline),
   `fitzhugh_nagumo` (nonlinear dynamics), and `robertson` (stiff dynamics);
 - `scripts/check_cpp_gate.py` for a conservative, evidence-only gate check;
+- `scripts/check_benchmark_provenance.py` for fail-closed validation of the
+  suite provenance contract;
 - `numeris.budget.memory` for best-effort RSS/high-water-mark measurements;
 - `research/protocol/EXPERIMENT_PROTOCOL.md` for the requirement to preserve a
   negative C++ decision when the evidence is insufficient.
@@ -138,6 +140,22 @@ SciPy versions), and the artifact schema version. The gate JSON records the
 exact gate invocation, referenced profile artifacts, runtime metadata, and the
 observed decision. This is a small deterministic screening workload, not the
 scientific benchmark campaign or proof of a C++ benefit.
+
+Each profile, the gate report, and `suite_manifest.json` record the checked-out
+Git commit, Python/platform runtime, protocol path, exact command, and an
+explicit result scope: `exploratory`, `bounded`, or `full`. The current suite
+defaults to `bounded`; this is metadata, not a claim that the scientific
+campaign is complete. The provenance checker validates these fields and the
+referenced artifacts:
+
+```bash
+python scripts/check_benchmark_provenance.py \
+  results/profiling/cpp_gate/suite_manifest.json
+```
+
+The checker is fail-closed if a commit, runtime, protocol, command, scope, or
+referenced artifact is missing. It does not certify numerical correctness or
+scientific validity.
 
 After the three profiles are written, suite mode invokes
 `scripts/check_cpp_gate.py` itself without `--evidence`, stores its JSON output

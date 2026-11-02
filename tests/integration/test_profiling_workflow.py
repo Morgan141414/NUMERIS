@@ -6,6 +6,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROFILE_SCRIPT = PROJECT_ROOT / "scripts" / "profile_benchmark.py"
+PROVENANCE_SCRIPT = PROJECT_ROOT / "scripts" / "check_benchmark_provenance.py"
 
 
 def test_suite_writes_predictable_artifacts_and_runs_fail_closed_gate(tmp_path):
@@ -69,3 +70,37 @@ def test_suite_writes_predictable_artifacts_and_runs_fail_closed_gate(tmp_path):
     ]
     assert manifest["gate"]["decision"] == "KEEP_PYTHON"
     assert manifest["gate"]["fail_closed_without_candidate_evidence"] is True
+
+    assert manifest["provenance"]["git_commit"]
+    assert len(manifest["provenance"]["git_commit"]) == 40
+    assert manifest["provenance"]["protocol_path"] == "research/protocol/EXPERIMENT_PROTOCOL.md"
+    assert manifest["provenance"]["run_scope"] == "bounded"
+    for workload in ("oscillator", "fitzhugh_nagumo", "robertson"):
+        profile = json.loads((artifact_dir / f"profile_{workload}.json").read_text())
+        assert profile["provenance"]["git_commit"] == manifest["provenance"]["git_commit"]
+        assert profile["provenance"]["run_scope"] == "bounded"
+    checked = subprocess.run(
+        [sys.executable, str(PROVENANCE_SCRIPT), str(artifact_dir / "suite_manifest.json")],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert checked.returncode == 0, checked.stdout + checked.stderr
+    assert json.loads(checked.stdout)["passed"] is True
+
+
+def test_provenance_checker_rejects_incomplete_manifest(tmp_path):
+    manifest = tmp_path / "suite_manifest.json"
+    manifest.write_text(json.dumps({"workloads": []}) + "\n")
+    checked = subprocess.run(
+        [sys.executable, str(PROVENANCE_SCRIPT), str(manifest)],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert checked.returncode != 0
+    report = json.loads(checked.stdout)
+    assert report["passed"] is False
+    assert report["errors"]

@@ -36,6 +36,24 @@ WORKLOADS = {
     "robertson": (robertson, np.array([0.04, 3.0e7, 1.0e4]), "BDF"),
 }
 DEFAULT_ARTIFACT_DIR = Path("results/profiling/cpp_gate")
+DEFAULT_PROTOCOL_PATH = Path("research/protocol/EXPERIMENT_PROTOCOL.md")
+RUN_SCOPES = ("exploratory", "bounded", "full")
+
+
+def _git_commit() -> str | None:
+    """Return the checked-out commit, or ``None`` outside a Git checkout."""
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(__file__).resolve().parents[1],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:  # pragma: no cover - defensive portability fallback
+        return None
+    commit = completed.stdout.strip()
+    return commit if completed.returncode == 0 and commit else None
 
 
 def _runtime_metadata() -> dict[str, object]:
@@ -70,6 +88,22 @@ def _command_provenance() -> dict[str, object]:
     return {"command_argv": argv, "command": shlex.join(argv)}
 
 
+def _provenance(
+    *, protocol_path: Path, run_scope: str, extra: dict[str, object] | None = None
+) -> dict[str, object]:
+    """Build the common, machine-readable provenance contract."""
+    value: dict[str, object] = {
+        **_command_provenance(),
+        "git_commit": _git_commit(),
+        "protocol_path": str(protocol_path),
+        "run_scope": run_scope,
+        "runtime": _runtime_metadata(),
+    }
+    if extra:
+        value.update(extra)
+    return value
+
+
 def _write_profile_artifact(
     result: ProfileResult,
     result_path: Path,
@@ -77,6 +111,8 @@ def _write_profile_artifact(
     workload: str,
     method: str,
     solver_options: dict[str, object],
+    protocol_path: Path,
+    run_scope: str,
 ) -> None:
     """Write a core profile record plus immutable run provenance.
 
@@ -86,12 +122,14 @@ def _write_profile_artifact(
     """
     artifact = result.to_dict()
     artifact["profiling_artifact_schema_version"] = "1"
-    artifact["provenance"] = {
-        **_command_provenance(),
+    artifact["provenance"] = _provenance(
+        protocol_path=protocol_path,
+        run_scope=run_scope,
+        extra={
         "workload": workload,
         "solver": {"name": method, "options": solver_options},
-        "runtime": _runtime_metadata(),
-    }
+        },
+    )
     result_path.parent.mkdir(parents=True, exist_ok=True)
     result_path.write_text(
         json.dumps(artifact, indent=2, sort_keys=True, allow_nan=False) + "\n",
@@ -105,6 +143,8 @@ def _profile_workload(
     profile_path: Path,
     result_path: Path,
     hotspot_threshold: float,
+    protocol_path: Path,
+    run_scope: str,
 ) -> bool:
     factory, params, _reference_method = WORKLOADS[name]
     model = factory()
@@ -186,6 +226,8 @@ def _profile_workload(
         workload=name,
         method=method,
         solver_options={"rtol": 1e-8, "atol": 1e-10},
+        protocol_path=protocol_path,
+        run_scope=run_scope,
     )
     stats.print_stats(20)
     print(f"profile written to {profile_path}")
@@ -197,6 +239,8 @@ def _run_fail_closed_gate(
     profile_paths: tuple[Path, ...],
     gate_result_path: Path,
     min_profiles: int,
+    protocol_path: Path,
+    run_scope: str,
 ) -> tuple[bool, dict[str, object]]:
     """Run the C++ gate without candidate evidence and require KEEP_PYTHON.
 
@@ -223,13 +267,16 @@ def _run_fail_closed_gate(
         return False, {}
     gate_command = [str(value) for value in command]
     report["gate_artifact_schema_version"] = "1"
-    report["provenance"] = {
-        "command_argv": gate_command,
-        "command": shlex.join(gate_command),
-        "runtime": _runtime_metadata(),
-        "profile_artifacts": [str(path) for path in profile_paths],
-        "fail_closed_without_candidate_evidence": True,
-    }
+    report["provenance"] = _provenance(
+        protocol_path=protocol_path,
+        run_scope=run_scope,
+        extra={
+            "command_argv": gate_command,
+            "command": shlex.join(gate_command),
+            "profile_artifacts": [str(path) for path in profile_paths],
+            "fail_closed_without_candidate_evidence": True,
+        },
+    )
     gate_result_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     decision = report.get("decision")
     print(f"C++ gate decision: {decision} (no C++ evidence supplied)")
@@ -244,14 +291,13 @@ def _write_suite_manifest(
     profile_paths: list[Path],
     gate_path: Path,
     gate_report: dict[str, object],
+    protocol_path: Path,
+    run_scope: str,
 ) -> None:
     """Persist one auditable index for a complete profiling suite."""
     manifest = {
         "suite_artifact_schema_version": "1",
-        "provenance": {
-            **_command_provenance(),
-            "runtime": _runtime_metadata(),
-        },
+        "provenance": _provenance(protocol_path=protocol_path, run_scope=run_scope),
         "workloads": [
             {
                 "name": name,
@@ -281,6 +327,18 @@ def main() -> int:
         "--suite",
         action="store_true",
         help="profile the deterministic representative suite (three workloads)",
+    )
+    parser.add_argument(
+        "--protocol-path",
+        type=Path,
+        default=DEFAULT_PROTOCOL_PATH,
+        help="research protocol recorded in benchmark provenance",
+    )
+    parser.add_argument(
+        "--run-scope",
+        choices=RUN_SCOPES,
+        default="bounded",
+        help="honest classification of the generated result set",
     )
     parser.add_argument(
         "--workload",
@@ -330,16 +388,39 @@ def main() -> int:
                 profile_path,
                 result_path,
                 args.hotspot_threshold,
+                args.protocol_path,
+                args.run_scope,
             ) and success
         gate_ok, gate_report = _run_fail_closed_gate(
-            tuple(profile_paths), artifact_dir / "cpp_gate.json", min_profiles=3
+            tuple(profile_paths),
+            artifact_dir / "cpp_gate.json",
+            min_profiles=3,
+            protocol_path=args.protocol_path,
+            run_scope=args.run_scope,
         )
         _write_suite_manifest(
             artifact_dir,
             profile_paths=profile_paths,
             gate_path=artifact_dir / "cpp_gate.json",
             gate_report=gate_report,
+            protocol_path=args.protocol_path,
+            run_scope=args.run_scope,
         )
+        provenance_check = subprocess.run(
+            [
+                sys.executable,
+                str(Path(__file__).with_name("check_benchmark_provenance.py")),
+                str(artifact_dir / "suite_manifest.json"),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        print(provenance_check.stdout.strip())
+        if provenance_check.returncode != 0:
+            if provenance_check.stderr.strip():
+                print(provenance_check.stderr.strip(), file=sys.stderr)
+            return 1
         return 0 if success and gate_ok else 1
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.result_output.parent.mkdir(parents=True, exist_ok=True)
@@ -350,6 +431,8 @@ def main() -> int:
             args.output,
             args.result_output,
             args.hotspot_threshold,
+            args.protocol_path,
+            args.run_scope,
         )
     )
 
