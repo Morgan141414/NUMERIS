@@ -16,6 +16,7 @@ from .calibration import (
     calibrate_credible_intervals,
     paired_tolerance_sweep,
 )
+from .reliability_calibration import ReliabilityCalibrationCase, run_reliability_calibration
 
 __all__ = [
     "false_optimum_rate", "fit_parameters", "gaussian_negative_log_likelihood",
@@ -24,4 +25,5 @@ __all__ = [
     "grid_posterior", "posterior_distance", "run_parameter_recovery",
     "PosteriorCalibrationResult", "calibrate_credible_intervals",
     "PairedToleranceSweepResult", "paired_tolerance_sweep",
+    "ReliabilityCalibrationCase", "run_reliability_calibration",
 ]
