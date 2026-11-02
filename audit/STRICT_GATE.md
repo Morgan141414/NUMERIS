@@ -1,8 +1,8 @@
 # NUMERIS — Strict Gatekeeper Audit
 
-Дата аудита: 2026-10-30 (Asia/Almaty)
+Дата аудита: 2026-11-03 (Asia/Almaty)
 Аудируемый объект: текущий `HEAD`
-HEAD: `ad68379` (`ad68379`)
+HEAD: `6d02825b76ae983b3ae3b75a22064c795ffecf42` (`6d02825`, `Add bounded frozen campaign runner`)
 Источник требований: локальный read-only `private/TECHNICAL_SPEC.md`
 Ограничение публикации: private ТЗ не публикуется, не отслеживается Git и не входит в публичный архив.
 Изменения аудита: изменён только этот файл; code, `research/`, `docs/` и private ТЗ не изменялись. Push не выполняется.
@@ -11,62 +11,64 @@ HEAD: `ad68379` (`ad68379`)
 
 **BLOCKED — PARTIALLY COMPLIANT, NOT SCIENTIFICALLY COMPLETE.**
 
-Текущий HEAD — локально запускаемый и протестированный исследовательский прототип. Последние изменения добавили воспроизводимые интервалы Bayesian coverage, multi-model validation orchestration, executable closest-baseline reproduction gate и fail-closed C++ gate. Это закрывает инфраструктурные проверки, но не доказывает математическую новизну, превосходство NUMERIS-GO или готовность к публикации.
+Текущий HEAD — локально запускаемый исследовательский прототип с 110 passing tests, frozen manifest, evidence ledger, bounded campaign runner, ограниченной Bayesian/calibration диагностикой, hard-budget semantics для bounded orchestration и fail-closed C++ gate. Эти артефакты подтверждают инфраструктурную готовность отдельных проверок, но не доказывают математическую новизну, превосходство NUMERIS-GO, полную воспроизводимость baseline-методов или готовность к публикации.
 
 ## Evidence ledger
 
-| Критерий | Статус | Фактическая проверка и интерпретация |
+| Gate | Статус | Фактическое evidence и границы вывода |
 |---|---|---|
-| Полный тестовый набор | **PASS** | `./.venv/bin/pytest -q` → **95 passed**. |
+| Полный тестовый набор | **PASS** | `./.venv/bin/pytest -q` → **110 passed**. |
 | Publication safety | **PASS** | `python3 scripts/check_publication_safety.py` → `Publication safety check passed`; private/spec paths не входят в публичный Git/archive. |
-| Baseline reproduction gate | **PASS для структурного gate / PARTIAL для научного воспроизведения** | `bash research/protocol/check_baseline_reproduction.sh` проходит; manifest, ledger, baseline cards, статусы и controls присутствуют. Научные R1–R3 evidence и source-aligned reproductions ещё не выполнены. |
-| Literature foundation | **PARTIAL** | Есть inclusion/exclusion protocol, bibliography ledger, comparison matrix и reproduction plan. Нет завершённого overlap audit и итогового решения о novelty/no-novelty. |
-| Frozen experiment protocol | **PASS для freeze / PARTIAL для execution** | Версионированный manifest фиксирует модели, параметры, шум, seeds, методы, tolerance grid, budgets, reference policy и falsification rule. Полная кампания по manifest не выполнена и не заархивирована. |
-| Bayesian parameter recovery | **PASS как deterministic diagnostic / PARTIAL по ТЗ** | Работает finite-grid Gaussian posterior и recovery summary. Это не MCMC/PyMC/NumPyro и не доказательство posterior reliability. |
-| Bayesian calibration intervals | **PASS как ограниченный helper / PARTIAL по ТЗ** | Coverage, Wilson interval, counts, mean width, Monte Carlo SE и reproducible seeds реализованы и покрыты тестами. Нет полноценной sampler convergence диагностики, posterior predictive checks, независимого Bayesian reference и разделения statistical-vs-numerical uncertainty. |
-| Reference convergence report | **PASS как utility / PARTIAL как scientific gate** | `reference_report` требует минимум два solver methods, считает consensus, disagreement, RMSE, max error, nfev и runtime; consensus явно не объявляется абсолютной истиной. Полные cross-family reference checks для всех пяти моделей не выполнены как committed campaign. |
-| Multi-model validation report | **PASS как orchestration / PARTIAL как evidence** | `run_validation_suite` поддерживает несколько моделей, reference report, calibration, limits и JSON summary. Наличие orchestration не заменяет фактическую полную frozen campaign с результатами и отрицательными случаями. |
-| Equal-budget comparison | **PARTIAL** | Paired comparison и smoke checks работают. Budget caps являются проверкой результата после solver call, а не гарантированным interrupt hard cap; нет полного набора protocol cells, paired confidence intervals и committed scientific results. |
-| Ablation | **PARTIAL infrastructure / FAIL as scientific evidence** | Callback path реально исполняется и сохраняет metadata. Нет полного estimator-only, allocation-only, stopping-only и full-policy набора на всех объявленных моделях и бюджетах. |
-| Reliability calibration | **PARTIAL** | Bayesian coverage helper и общие error-bound metrics существуют. Нет полного сравнения emitted numerical-error bounds с независимой фактической ошибкой по всем declared workloads; систематическая overconfidence не исследована. |
-| C++ fail-closed gate | **PASS как safety decision / KEEP_PYTHON** | `python3 scripts/check_cpp_gate.py` выдаёт `KEEP_PYTHON`: отсутствуют hotspot corpus, equivalence, warm-up speed, memory и reproducibility evidence. C++ не требуется автоматически; production C++ не добавлять до прохождения всех predicates. |
-| Software laboratory | **PARTIAL** | Models, SciPy solver adapters, inference diagnostics, budget accounting, reports, profiling, tests и reproducibility support присутствуют. Полная end-to-end acceptance по ТЗ не закрыта из-за отсутствия validated controller и complete campaign artifacts. |
-| Git/publication hygiene | **PASS** | Рабочее дерево было чистым до изменения аудита; private ТЗ не копируется в публичные материалы. Этот audit commit выполняется локально, без push. |
+| Phase-I evidence ledger | **PASS как контрольный ledger / PARTIAL по научному закрытию** | `PHASE_I_EVIDENCE_LEDGER.md` содержит статусы R1–R3, blockers, checklist и stop conditions. R1–R3 evidence остаётся неполным; reproduction и novelty claims запрещены. |
+| Baseline reproduction gate | **PASS для структурного gate / PARTIAL для научного воспроизведения** | `bash research/protocol/check_baseline_reproduction.sh` проходит. Manifest, bibliography, cards и source IDs проверяются. Source-aligned numerical reproductions ADJ-GLOBAL, likelihood-distortion, DALTON и PROB-ODE не завершены. |
+| Literature foundation | **PARTIAL** | Есть inclusion/exclusion protocol, bibliography ledger, comparison matrix, baseline manifest и evidence ledger. Нет завершённого overlap/mechanism audit и обоснованного решения о novelty/no-novelty. |
+| Frozen experiment protocol | **PASS для freeze / PARTIAL для execution** | Manifest v0.1 фиксирует 5 моделей, параметры, шум, 10 seeds, solver/tolerance grid, budgets, references, endpoints и falsification rule. Полный запуск не выполнен. |
+| Bounded frozen campaign | **PASS как bounded infrastructure / BLOCKED как full campaign evidence** | Dry-run на manifest v0.1: `bounded_incomplete`, `3000 planned`, `2 admitted`, `0 solver calls`, `3000 not_started`. Runner сохраняет `success`, `failure`, `over_budget`, `not_started`, но ограниченный run не является полной validation campaign. |
+| Bayesian parameter recovery | **PASS как deterministic diagnostic / PARTIAL по ТЗ** | Работает finite-grid Gaussian posterior/recovery helper. Это не MCMC/PyMC/NumPyro и не доказательство posterior reliability. |
+| Numerical reliability calibration | **PARTIAL** | Tolerance-sweep calibration сравнивает emitted bound с независимой reference error, считает coverage/overconfidence; Bayesian coverage helper имеет Wilson intervals и Monte Carlo SE. Нет полной declared-workload calibration campaign и установленного отсутствия overconfidence. |
+| Reference convergence report | **PASS как utility / PARTIAL как scientific gate** | Есть multi-method consensus, pairwise disagreement, RMSE, max error, nfev и runtime. Полные cross-family reference checks для всех пяти моделей не сохранены как завершённая campaign. Consensus не считается абсолютной истиной. |
+| Hard-budget semantics | **PASS для bounded runner / PARTIAL для всей validation stack** | Bounded orchestration выполняет preflight, сохраняет `preflight_rejected`, `completed`, `over_budget`, `not_started` и прекращает последующие запуски после исчерпания бюджета; тесты проходят. Frozen runner сохраняет budget violations, но SciPy solver call не прерывается mid-call, а старый equal-budget comparison остаётся post-hoc. |
+| Equal-budget comparison | **PARTIAL** | Paired comparison, same observations/seeds и budget accounting реализованы. Нет полного protocol-wide набора cells, paired confidence intervals и committed scientific results. |
+| Ablation | **PARTIAL infrastructure / FAIL as scientific evidence** | Callback path и metadata работают. Полный estimator-only/allocation-only/stopping-only/full-policy набор на всех моделях, seeds и budgets отсутствует. |
+| Profiling suite | **PASS как profiling workflow** | `PYTHONPATH=. ./.venv/bin/python scripts/profile_benchmark.py --suite` успешно создал профили для oscillator, FitzHugh–Nagumo и Robertson и автоматически вызвал fail-closed gate. Это не C++ superiority evidence. |
+| C++ gate | **PASS как safety decision / KEEP_PYTHON** | При трёх distinct profiles gate возвращает `KEEP_PYTHON`: отсутствуют numerical equivalence, warm-up speedup ≥1.25, comparable memory и reproducibility evidence. Production C++ не разрешён и не требуется. |
+| Software laboratory | **PARTIAL** | Models, SciPy adapters, inference diagnostics, budget accounting, reports, profiling, tests и reproducibility helpers присутствуют. Validated NUMERIS-GO controller и complete end-to-end campaign отсутствуют. |
+| Git/publication hygiene | **PASS** | Рабочее дерево чистое перед audit commit; private ТЗ read-only и не публикуется. Audit commit локальный, push не выполняется. |
 
 ## Phase gates against the private ТЗ
 
 ### Phase I — Research Foundation: **PARTIAL**
 
-Структура обзора, ledger, comparison matrix, protocol и baseline-reproduction gate созданы. Не завершены source-aligned reproductions, line-by-line mechanism/overlap audit и окончательная фиксация research gap. Claims `novel`, `first`, `superior` и `publication-ready` запрещены.
+Evidence ledger, baseline manifest, literature protocol и executable structural gate созданы. Научные R1–R3 reproductions не завершены, поэтому research gap и novelty не установлены.
 
 ### Phase II — Mathematical Core: **PARTIAL / BLOCKED for novelty**
 
-Есть target-versus-cost постановка, Gaussian likelihood perturbation baseline и heuristic sensitivity/temporal policy scaffolding. Нет validated solver-integrated goal-oriented estimator, доказанных convergence/stability/reliability свойств и подтверждённой математической новизны.
+Есть target-versus-cost постановка, Gaussian likelihood perturbation baseline и heuristic sensitivity/temporal scaffolding. Нет validated solver-integrated goal-oriented estimator, доказанных convergence/stability/reliability properties или подтверждённой математической новизны.
 
 ### Phase III — Software Laboratory: **PARTIAL**
 
-Основные программные модули и тестируемые отчёты работают локально. Не закрыты hard-budget semantics, production-level controller integration и полный end-to-end reproducibility package для всех заявленных экспериментов.
+Библиотека, benchmark/reporting utilities, bounded budget semantics, calibration helpers, profiling workflow и тесты работают локально. Полная интеграция validated controller и end-to-end reproducibility package по всем заявленным экспериментам не закрыта.
 
 ### Phase IV — Scientific Validation: **FAIL**
 
-Нет committed evidence полного frozen campaign для пяти моделей, всех seeds/noise/method/tolerance/budget combinations, независимых reference checks, primary endpoint analysis, false-optimum study, posterior-distance study, paired confidence intervals, negative-results ledger и полного component ablation.
+Нет завершённого полного frozen campaign для пяти моделей, всех methods/tolerances/seeds/noise/budgets, committed primary endpoint analysis, paired uncertainty intervals, full false-optimum/posterior-distance study, independent reference package и полного scientific ablation.
 
 ### Phase V — Publication readiness: **BLOCKED**
 
-Validated scientific contribution, superiority/non-inferiority result, complete figures/tables, manuscript и independent reproduction package не установлены. Публикация не следует из наличия кода и 95 passing tests.
+Validated scientific contribution, superiority/non-inferiority result, complete figures/tables, manuscript и independent reproduction package не установлены. 110 passing tests не заменяют научную валидацию.
 
-## Required remaining gates
+## Required remaining work
 
-1. Выполнить и сохранить convergence/cross-family reference checks для всех пяти benchmark families.
-2. Запустить frozen manifest целиком; сохранить success, failed и over-budget trials, commit hash и machine-readable summaries.
-3. Рассчитать likelihood distortion, parameter RMSE, posterior distance и false-optimum endpoints с заранее заданными paired uncertainty intervals.
-4. Завершить source-aligned baseline reproduction либо зафиксировать blockers с допустимым статусом `NOT-REPRODUCED`.
-5. Подключить реальные estimator/allocation/stopping components и провести полный ablation study.
-6. Проверить emitted error estimates против независимой фактической ошибки; overconfidence считать gate failure.
-7. Реализовать hard-budget semantics или явно ограничить claim post-hoc accounting.
-8. Провести representative multi-model profiling; затем пройти C++ equivalence, warm-up speed, memory и reproducibility gates либо сохранить отрицательное решение `KEEP_PYTHON`.
-9. Вести committed negative-results record: baseline-better cases, failures, budget exhaustion и ограничения применимости.
+1. Завершить source-aligned baseline evidence или зафиксировать каждый blocker как `NOT-REPRODUCED` с artifact-level причиной.
+2. Провести независимые convergence/cross-family reference checks для всех пяти benchmark families и сохранить результаты с commit hash.
+3. Запустить frozen manifest в полном объявленном объёме либо явно документировать невозможность полного запуска; сохранить все success, failure, over-budget и not-started cases.
+4. Рассчитать declared primary endpoints: likelihood distortion и parameter RMSE, paired 95% uncertainty intervals, failure/budget rates и negative-results ledger.
+5. Реализовать и проверить реальные estimator/allocation/stopping components NUMERIS-GO; выполнить полный ablation study.
+6. Сопоставить emitted numerical-error bounds с независимой фактической ошибкой по всем declared workloads; overconfidence считать gate failure.
+7. Разделить post-hoc accounting и истинное прерывание solver call; не расширять hard-budget claim без доказанной interrupt semantics.
+8. Для C++ либо предоставить все пять predicates (hotspot, equivalence, warm-up speed, memory, reproducibility), либо сохранить `KEEP_PYTHON`; не добавлять production C++ только из-за профилирования.
+9. Подготовить committed negative-results record: baseline-better cases, failures, budget exhaustion, unresolved references и applicability limits.
 
 ## Permitted public claim
 
-> NUMERIS HEAD `ad68379` — локально запускаемый, протестированный deterministic research prototype с frozen experiment manifest, baseline-reproduction protocol, finite-grid Bayesian diagnostics, reproducible reference/validation helpers и fail-closed optional C++ gate. Он не является подтверждённо новым методом, доказанно превосходящим стандартные решатели, завершённым Bayesian study или publication-ready результатом.
+> NUMERIS HEAD `6d02825` — локально запускаемый, протестированный deterministic research prototype с frozen experiment manifest, Phase-I evidence ledger, bounded campaign runner, numerical-reliability calibration helpers, hard-budget orchestration, representative profiling suite и fail-closed optional C++ gate. Он не является подтверждённо новым методом, доказанно превосходящим стандартные решатели, завершённым Bayesian study или publication-ready результатом.
