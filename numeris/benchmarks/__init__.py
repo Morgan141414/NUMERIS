@@ -26,6 +26,7 @@ from .reference_campaign import (
     ReferenceCampaignSpec,
     run_bounded_reference_campaign,
 )
+from .primary_endpoint import PrimaryEndpointConditions, build_primary_endpoint_report
 
 __all__ = [
     "damped_oscillator",
@@ -53,4 +54,6 @@ __all__ = [
     "DEFAULT_REFERENCE_TOLERANCES",
     "ReferenceCampaignSpec",
     "run_bounded_reference_campaign",
+    "PrimaryEndpointConditions",
+    "build_primary_endpoint_report",
 ]
