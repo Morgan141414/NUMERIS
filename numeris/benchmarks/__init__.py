@@ -21,6 +21,11 @@ from .frozen_campaign import (
     load_frozen_manifest,
     run_frozen_campaign,
 )
+from .reference_campaign import (
+    DEFAULT_REFERENCE_TOLERANCES,
+    ReferenceCampaignSpec,
+    run_bounded_reference_campaign,
+)
 
 __all__ = [
     "damped_oscillator",
@@ -45,4 +50,7 @@ __all__ = [
     "FrozenModelSpec",
     "load_frozen_manifest",
     "run_frozen_campaign",
+    "DEFAULT_REFERENCE_TOLERANCES",
+    "ReferenceCampaignSpec",
+    "run_bounded_reference_campaign",
 ]
