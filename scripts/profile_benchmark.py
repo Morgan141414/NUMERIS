@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import argparse
 import cProfile
+import json
 import pstats
+import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -30,6 +33,7 @@ WORKLOADS = {
     ),
     "robertson": (robertson, np.array([0.04, 3.0e7, 1.0e4]), "BDF"),
 }
+DEFAULT_ARTIFACT_DIR = Path("results/profiling/cpp_gate")
 
 
 def _profile_workload(
@@ -120,6 +124,42 @@ def _profile_workload(
     return result.success
 
 
+def _run_fail_closed_gate(
+    profile_paths: tuple[Path, ...],
+    gate_result_path: Path,
+    min_profiles: int,
+) -> bool:
+    """Run the C++ gate without candidate evidence and require KEEP_PYTHON.
+
+    The profiling workflow must never manufacture C++ evidence.  A successful
+    suite therefore means that profiling completed and the independent gate
+    explicitly refused production C++ because no evidence file was supplied.
+    """
+    command = [
+        sys.executable,
+        str(Path(__file__).with_name("check_cpp_gate.py")),
+        "--min-profiles",
+        str(min_profiles),
+    ]
+    for profile_path in profile_paths:
+        command.extend(("--profile", str(profile_path)))
+    completed = subprocess.run(command, capture_output=True, text=True, check=False)
+    stdout = completed.stdout.strip()
+    try:
+        report = json.loads(stdout)
+    except json.JSONDecodeError:
+        print("C++ gate produced invalid JSON:", stdout, file=sys.stderr)
+        if completed.stderr.strip():
+            print(completed.stderr.strip(), file=sys.stderr)
+        return False
+    gate_result_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    decision = report.get("decision")
+    print(f"C++ gate decision: {decision} (no C++ evidence supplied)")
+    if completed.stderr.strip():
+        print(completed.stderr.strip(), file=sys.stderr)
+    return decision == "KEEP_PYTHON" and completed.returncode != 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--method", default="DOP853")
@@ -142,6 +182,15 @@ def main() -> int:
         help="JSON profiling result (the .prof output remains available).",
     )
     parser.add_argument(
+        "--artifact-dir",
+        type=Path,
+        default=None,
+        help=(
+            "directory for suite artifacts; defaults to "
+            "results/profiling/cpp_gate"
+        ),
+    )
+    parser.add_argument(
         "--hotspot-threshold",
         type=float,
         default=0.50,
@@ -152,21 +201,26 @@ def main() -> int:
     if args.suite and args.method != "DOP853":
         parser.error("--suite uses its declared solver methods; omit --method")
     if args.suite:
-        output_dir = args.output.parent
-        result_dir = args.result_output.parent
-        output_dir.mkdir(parents=True, exist_ok=True)
-        result_dir.mkdir(parents=True, exist_ok=True)
+        artifact_dir = args.artifact_dir or DEFAULT_ARTIFACT_DIR
+        artifact_dir.mkdir(parents=True, exist_ok=True)
         success = True
+        profile_paths: list[Path] = []
         for name in workloads:
             _, _, declared_method = WORKLOADS[name]
+            profile_path = artifact_dir / f"profile_{name}.prof"
+            result_path = artifact_dir / f"profile_{name}.json"
+            profile_paths.append(result_path)
             success = _profile_workload(
                 name,
                 declared_method,
-                output_dir / f"profile_{name}.prof",
-                result_dir / f"profile_{name}.json",
+                profile_path,
+                result_path,
                 args.hotspot_threshold,
             ) and success
-        return 0 if success else 1
+        gate_ok = _run_fail_closed_gate(
+            tuple(profile_paths), artifact_dir / "cpp_gate.json", min_profiles=3
+        )
+        return 0 if success and gate_ok else 1
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.result_output.parent.mkdir(parents=True, exist_ok=True)
     return int(

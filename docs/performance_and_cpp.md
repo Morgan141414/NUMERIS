@@ -121,26 +121,33 @@ changing the benchmark after seeing an unfavorable result.
 The profiling workflow can collect the representative workload set with:
 
 ```bash
-python scripts/profile_benchmark.py --suite \
-  --output results/profiles/profile_suite.prof \
-  --result-output results/profiles/profile_suite.json
+python scripts/profile_benchmark.py --suite
 ```
 
-Suite mode writes one profile and one JSON record per workload:
+Suite mode writes all artifacts to the predictable directory
+`results/profiling/cpp_gate/` (override with `--artifact-dir`). It writes one
+profile and one JSON record per workload:
 `profile_oscillator.json`, `profile_fitzhugh_nagumo.json`, and
-`profile_robertson.json`. The solver method is declared per workload: DOP853
-for the two non-stiff cases and BDF for Robertson. This is a small deterministic
-screening workload, not the scientific benchmark campaign or proof of a C++
-benefit.
+`profile_robertson.json`, plus `cpp_gate.json`. The solver method is declared
+per workload: DOP853 for the two non-stiff cases and BDF for Robertson. This
+is a small deterministic screening workload, not the scientific benchmark
+campaign or proof of a C++ benefit.
+
+After the three profiles are written, suite mode invokes
+`scripts/check_cpp_gate.py` itself without `--evidence`, stores its JSON output
+as `cpp_gate.json`, and requires the explicit fail-closed decision
+`KEEP_PYTHON`. The command exits zero when profiling succeeds and this
+expected negative gate decision is observed. It exits non-zero for a profiling
+failure, malformed gate output, or any unexpected gate decision. Thus this
+workflow cannot approve production C++ merely because a hotspot was measured.
 
 The resulting records can be passed independently to the fail-closed gate:
 
 ```bash
 python scripts/check_cpp_gate.py \
-  --profile results/profiles/profile_oscillator.json \
-  --profile results/profiles/profile_fitzhugh_nagumo.json \
-  --profile results/profiles/profile_robertson.json \
-  --evidence results/cpp_candidate_evidence.json
+  --profile results/profiling/cpp_gate/profile_oscillator.json \
+  --profile results/profiling/cpp_gate/profile_fitzhugh_nagumo.json \
+  --profile results/profiling/cpp_gate/profile_robertson.json
 ```
 
 The suite measures `solve_ode` as a candidate hotspot when the configured
