@@ -7,6 +7,8 @@ import argparse
 import cProfile
 import json
 import pstats
+import platform
+import shlex
 import subprocess
 import sys
 import time
@@ -34,6 +36,67 @@ WORKLOADS = {
     "robertson": (robertson, np.array([0.04, 3.0e7, 1.0e4]), "BDF"),
 }
 DEFAULT_ARTIFACT_DIR = Path("results/profiling/cpp_gate")
+
+
+def _runtime_metadata() -> dict[str, object]:
+    """Return serializable provenance for a profiling artifact."""
+    try:
+        import numpy
+        numpy_version = numpy.__version__
+    except Exception:  # pragma: no cover - defensive metadata fallback
+        numpy_version = None
+    try:
+        import scipy
+        scipy_version = scipy.__version__
+    except Exception:  # pragma: no cover - defensive metadata fallback
+        scipy_version = None
+    return {
+        "platform": platform.platform(),
+        "system": platform.system(),
+        "release": platform.release(),
+        "machine": platform.machine(),
+        "processor": platform.processor(),
+        "python_implementation": platform.python_implementation(),
+        "python_version": platform.python_version(),
+        "python_executable": sys.executable,
+        "numpy_version": numpy_version,
+        "scipy_version": scipy_version,
+    }
+
+
+def _command_provenance() -> dict[str, object]:
+    """Capture the exact CLI invocation in both argv and shell form."""
+    argv = [sys.executable, *sys.argv]
+    return {"command_argv": argv, "command": shlex.join(argv)}
+
+
+def _write_profile_artifact(
+    result: ProfileResult,
+    result_path: Path,
+    *,
+    workload: str,
+    method: str,
+    solver_options: dict[str, object],
+) -> None:
+    """Write a core profile record plus immutable run provenance.
+
+    The metadata is added at the script boundary so the numerical core and
+    its public schema remain unchanged.  It is deliberately explicit rather
+    than inferred later from filenames or the current machine.
+    """
+    artifact = result.to_dict()
+    artifact["profiling_artifact_schema_version"] = "1"
+    artifact["provenance"] = {
+        **_command_provenance(),
+        "workload": workload,
+        "solver": {"name": method, "options": solver_options},
+        "runtime": _runtime_metadata(),
+    }
+    result_path.parent.mkdir(parents=True, exist_ok=True)
+    result_path.write_text(
+        json.dumps(artifact, indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
 
 
 def _profile_workload(
@@ -117,7 +180,13 @@ def _profile_workload(
             cpp_gate_decision=cpp_gate_decision,
         ),
     )
-    result.write_json(result_path)
+    _write_profile_artifact(
+        result,
+        result_path,
+        workload=name,
+        method=method,
+        solver_options={"rtol": 1e-8, "atol": 1e-10},
+    )
     stats.print_stats(20)
     print(f"profile written to {profile_path}")
     print(f"safe result written to {result_path}")
@@ -128,7 +197,7 @@ def _run_fail_closed_gate(
     profile_paths: tuple[Path, ...],
     gate_result_path: Path,
     min_profiles: int,
-) -> bool:
+) -> tuple[bool, dict[str, object]]:
     """Run the C++ gate without candidate evidence and require KEEP_PYTHON.
 
     The profiling workflow must never manufacture C++ evidence.  A successful
@@ -151,13 +220,58 @@ def _run_fail_closed_gate(
         print("C++ gate produced invalid JSON:", stdout, file=sys.stderr)
         if completed.stderr.strip():
             print(completed.stderr.strip(), file=sys.stderr)
-        return False
+        return False, {}
+    gate_command = [str(value) for value in command]
+    report["gate_artifact_schema_version"] = "1"
+    report["provenance"] = {
+        "command_argv": gate_command,
+        "command": shlex.join(gate_command),
+        "runtime": _runtime_metadata(),
+        "profile_artifacts": [str(path) for path in profile_paths],
+        "fail_closed_without_candidate_evidence": True,
+    }
     gate_result_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     decision = report.get("decision")
     print(f"C++ gate decision: {decision} (no C++ evidence supplied)")
     if completed.stderr.strip():
         print(completed.stderr.strip(), file=sys.stderr)
-    return decision == "KEEP_PYTHON" and completed.returncode != 0
+    return decision == "KEEP_PYTHON" and completed.returncode != 0, report
+
+
+def _write_suite_manifest(
+    artifact_dir: Path,
+    *,
+    profile_paths: list[Path],
+    gate_path: Path,
+    gate_report: dict[str, object],
+) -> None:
+    """Persist one auditable index for a complete profiling suite."""
+    manifest = {
+        "suite_artifact_schema_version": "1",
+        "provenance": {
+            **_command_provenance(),
+            "runtime": _runtime_metadata(),
+        },
+        "workloads": [
+            {
+                "name": name,
+                "solver": {"name": WORKLOADS[name][2], "options": {"rtol": 1e-8, "atol": 1e-10}},
+                "profile_artifact": str(path),
+            }
+            for name, path in zip(WORKLOADS, profile_paths)
+        ],
+        "gate": {
+            "artifact": str(gate_path),
+            "decision": gate_report.get("decision"),
+            "command": gate_report.get("provenance", {}).get("command"),
+            "fail_closed_without_candidate_evidence": gate_report.get("provenance", {}).get(
+                "fail_closed_without_candidate_evidence"
+            ),
+        },
+    }
+    (artifact_dir / "suite_manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def main() -> int:
@@ -217,8 +331,14 @@ def main() -> int:
                 result_path,
                 args.hotspot_threshold,
             ) and success
-        gate_ok = _run_fail_closed_gate(
+        gate_ok, gate_report = _run_fail_closed_gate(
             tuple(profile_paths), artifact_dir / "cpp_gate.json", min_profiles=3
+        )
+        _write_suite_manifest(
+            artifact_dir,
+            profile_paths=profile_paths,
+            gate_path=artifact_dir / "cpp_gate.json",
+            gate_report=gate_report,
         )
         return 0 if success and gate_ok else 1
     args.output.parent.mkdir(parents=True, exist_ok=True)

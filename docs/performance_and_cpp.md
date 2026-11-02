@@ -129,9 +129,15 @@ Suite mode writes all artifacts to the predictable directory
 profile and one JSON record per workload:
 `profile_oscillator.json`, `profile_fitzhugh_nagumo.json`, and
 `profile_robertson.json`, plus `cpp_gate.json`. The solver method is declared
-per workload: DOP853 for the two non-stiff cases and BDF for Robertson. This
-is a small deterministic screening workload, not the scientific benchmark
-campaign or proof of a C++ benefit.
+per workload: DOP853 for the two non-stiff cases and BDF for Robertson. It also
+writes `suite_manifest.json`, the provenance index for the suite. Each profile
+JSON records the exact profile CLI invocation as both `command_argv` and
+shell-escaped `command`, the workload name, solver name and options,
+platform/runtime metadata (OS, machine, Python executable/version, NumPy and
+SciPy versions), and the artifact schema version. The gate JSON records the
+exact gate invocation, referenced profile artifacts, runtime metadata, and the
+observed decision. This is a small deterministic screening workload, not the
+scientific benchmark campaign or proof of a C++ benefit.
 
 After the three profiles are written, suite mode invokes
 `scripts/check_cpp_gate.py` itself without `--evidence`, stores its JSON output
@@ -140,6 +146,11 @@ as `cpp_gate.json`, and requires the explicit fail-closed decision
 expected negative gate decision is observed. It exits non-zero for a profiling
 failure, malformed gate output, or any unexpected gate decision. Thus this
 workflow cannot approve production C++ merely because a hotspot was measured.
+
+The manifest and gate artifacts are intentionally redundant: the manifest is
+the suite index, while `cpp_gate.json` remains directly consumable by
+`check_cpp_gate.py`. Both preserve `KEEP_PYTHON` when no candidate evidence is
+supplied.
 
 The resulting records can be passed independently to the fail-closed gate:
 
