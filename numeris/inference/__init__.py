@@ -17,6 +17,7 @@ from .calibration import (
     paired_tolerance_sweep,
 )
 from .reliability_calibration import ReliabilityCalibrationCase, run_reliability_calibration
+from .bootstrap import PairedBootstrapResult, paired_bootstrap_difference
 
 __all__ = [
     "false_optimum_rate", "fit_parameters", "gaussian_negative_log_likelihood",
@@ -26,4 +27,5 @@ __all__ = [
     "PosteriorCalibrationResult", "calibrate_credible_intervals",
     "PairedToleranceSweepResult", "paired_tolerance_sweep",
     "ReliabilityCalibrationCase", "run_reliability_calibration",
+    "PairedBootstrapResult", "paired_bootstrap_difference",
 ]
