@@ -7,6 +7,8 @@ Status: initial evidence-backed review. The review is governed by `INCLUSION_EXC
 - [Inclusion/exclusion protocol](INCLUSION_EXCLUSION_PROTOCOL.md)
 - [Bibliography ledger](BIBLIOGRAPHY_LEDGER.md)
 - [Comparison matrix](COMPARISON_MATRIX.md)
+- [Mechanism-level gap-closure matrix](RESEARCH_GAP_CLOSURE_MATRIX.md)
+- [Research Gap Closure exit criteria](RESEARCH_GAP_CLOSURE_EXIT_CRITERIA.md)
 
 ## Primary related work
 
@@ -51,3 +53,8 @@ The operational definition of these exit criteria is in
 [`PHASE_I_EXIT_CRITERIA.md`](PHASE_I_EXIT_CRITERIA.md). The closest-baseline
 reproduction plan is in
 [`CLOSEST_BASELINE_REPRODUCTION_PLAN.md`](CLOSEST_BASELINE_REPRODUCTION_PLAN.md).
+
+The current mechanism-level gap review is governed by
+[`RESEARCH_GAP_CLOSURE_MATRIX.md`](RESEARCH_GAP_CLOSURE_MATRIX.md) and its
+explicit gate in
+[`RESEARCH_GAP_CLOSURE_EXIT_CRITERIA.md`](RESEARCH_GAP_CLOSURE_EXIT_CRITERIA.md).

@@ -10,6 +10,13 @@ campaign must not be described as a reproduction of an adjoint, goal-oriented,
 probabilistic, or likelihood-aware method unless the corresponding baseline
 card and deviation record are complete.
 
+Research Gap Closure is additionally governed by
+`../literature_review/RESEARCH_GAP_CLOSURE_MATRIX.md` and
+`../literature_review/RESEARCH_GAP_CLOSURE_EXIT_CRITERIA.md`. Until that gate
+is reviewed, the mechanism-level status is
+`RESEARCH GAP CLOSURE OPEN / GAP-UNRESOLVED`; the deterministic campaign must
+not imply novelty or superiority of NUMERIS-GO.
+
 ## Scope
 
 Deterministic parameterized ODEs with Gaussian observation noise on a local Apple Silicon/macOS-compatible Python environment. Models: damped oscillator, FitzHugh–Nagumo, Lotka–Volterra, Lorenz, Robertson. The primary deterministic target is likelihood error at a fixed RHS-evaluation budget; parameter RMSE is a co-primary endpoint for parameter-recovery runs. Posterior distances are secondary until the Bayesian sampler protocol is implemented.
