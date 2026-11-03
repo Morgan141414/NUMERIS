@@ -1,8 +1,9 @@
 # NUMERIS — Strict Gatekeeper Audit
 
 Дата аудита: 2026-11-03 (Asia/Almaty)
-Аудируемый объект: текущий `HEAD`
-HEAD: `4786700ca6f4805cc0103ab81cd0eb76550871a2` (`4786700`, `Add bounded primary endpoint validation report`)
+Аудируемый кодовый HEAD: `187f99a8aee2fe751c840bf1cde0f669c73a56f8` (`187f99a`, `Add mechanism-level research gap closure gate`)
+Audit commit: отдельный локальный commit после audited code HEAD; точный hash сообщается Git после commit и не встраивается в собственный commit
+Последние проверенные изменения: `1317ca4`, `d4887d1`, `187f99a`
 Источник требований: локальный read-only `private/TECHNICAL_SPEC.md`
 Ограничение публикации: private ТЗ не публикуется, не отслеживается Git и не входит в публичный архив.
 
@@ -21,12 +22,15 @@ HEAD: `4786700ca6f4805cc0103ab81cd0eb76550871a2` (`4786700`, `Add bounded primar
 - Primary endpoint helper: **PASS как fail-closed infrastructure / PARTIAL как scientific evidence**.
 - Paired bootstrap helper: **PASS как uncertainty infrastructure / PARTIAL как scientific evidence**.
 - До изменения этого файла рабочее дерево было чистым; изменяется только `audit/STRICT_GATE.md`.
+- `research/protocol/MINIMAL_SCIENTIFIC_PROTOTYPE_v0.1.md` заморожен, но эксперимент не запускался и результатов не содержит.
+- `research/literature_review/RESEARCH_GAP_CLOSURE_MATRIX.md` добавлена, но статус остаётся `GAP-UNRESOLVED`.
+- Mathematical candidate formalized, но theorem-level guarantees, novelty и solver integration отсутствуют.
 
 ## Итоговый verdict
 
 **BLOCKED — PARTIALLY COMPLIANT, NOT SCIENTIFICALLY COMPLETE.**
 
-Текущий HEAD — локально запускаемый исследовательский прототип с проходящими тестами, frozen protocol, evidence ledgers, bounded budget/campaign infrastructure, ограниченной Bayesian/reliability diagnostics, provenance-aware profiling, paired uncertainty helpers, fail-closed primary-endpoint report и fail-closed C++ gate. Он не доказывает математическую новизну, превосходство NUMERIS-GO, полную воспроизводимость baseline-методов или готовность к публикации.
+Текущий кодовый HEAD — локально запускаемый исследовательский прототип с проходящими тестами, frozen protocol, Research Gap Closure matrix, формализованным mathematical candidate, evidence ledgers, bounded budget/campaign infrastructure, ограниченной Bayesian/reliability diagnostics, provenance-aware profiling, paired uncertainty helpers, fail-closed primary-endpoint report и fail-closed C++ gate. Он не доказывает математическую новизну, превосходство NUMERIS-GO, полную воспроизводимость baseline-методов или готовность к публикации.
 
 ## Evidence ledger
 
@@ -37,7 +41,7 @@ HEAD: `4786700ca6f4805cc0103ab81cd0eb76550871a2` (`4786700`, `Add bounded primar
 | Negative-results evidence ledger | **PASS как сохранение статусов** | Зафиксированы `REFERENCE-UNRESOLVED`, `NOT-REPRODUCED`, `BLOCKED`, `baseline-better — NOT-ESTABLISHED`, `BUDGET-EXHAUSTED/INCOMPLETE`, ограничения пяти моделей и C++ gate. Это не заменяет завершённые эксперименты. |
 | Phase-I evidence ledger | **PASS как контрольный ledger / PARTIAL по научному закрытию** | R1–R3 evidence, source-aligned reproductions и overlap audit остаются незавершёнными; novelty claims запрещены. |
 | Baseline reproduction gate | **PASS для структурного gate / PARTIAL для научного воспроизведения** | Manifest, bibliography, cards, source IDs и stop conditions проходят проверку. ADJ-GLOBAL, GO-FUNCTIONAL, likelihood-distortion, DALTON и PROB-ODE не воспроизведены как полные source-aligned baselines. |
-| Frozen experiment protocol | **PASS для freeze / PARTIAL для execution** | Manifest v0.1 фиксирует модели, параметры, шум, seeds, solver/tolerance grid, budgets, references, endpoints и falsification rule. Полный protocol-wide запуск не выполнен. |
+| Frozen experiment protocol | **PASS для freeze / PARTIAL для execution** | Manifest v0.1 фиксирует модели, параметры, шум, seeds, solver/tolerance grid, budgets, references, endpoints и falsification rule. Полный protocol-wide запуск не выполнен; minimal oscillator protocol frozen, но эксперимент не запускался. |
 | Bounded five-model reference campaign | **PASS как bounded diagnostic / PARTIAL как scientific evidence** | Фактический run дал `5/5 REFERENCE-RESOLVED`, 20 solver runs, два tolerance levels и DOP853/Radau либо BDF/Radau по моделям. `REFERENCE-RESOLVED` означает только прохождение объявленных bounded convergence/cross-family checks; это не exact truth, не full campaign и не доказательство superiority. |
 | Primary endpoint report | **PASS как fail-closed infrastructure / PARTIAL как scientific evidence** | Helper считает paired likelihood distortion, parameter RMSE, failure/budget rates и bootstrap intervals, по умолчанию возвращает `NO_CONFIRMED_ADVANTAGE`. Наличие helper и unit-тестов не является фактическим full-campaign result и не подтверждает superiority/non-inferiority. |
 | Paired bootstrap CI | **PASS как uncertainty infrastructure / PARTIAL по фактическому evidence** | Реализована воспроизводимая seed-wise paired bootstrap-оценка неопределённости. Она не заменяет запуск declared workloads, не создаёт отсутствующие samples и не является доказательством научного преимущества. |
@@ -52,6 +56,9 @@ HEAD: `4786700ca6f4805cc0103ab81cd0eb76550871a2` (`4786700`, `Add bounded primar
 | C++ gate | **PASS как safety decision / KEEP_PYTHON** | Profiling не сопровождается numerical equivalence, warm-up speedup ≥1.25, comparable memory и reproducibility evidence. Production C++ не разрешён и не требуется по текущим данным. |
 | Software laboratory | **PARTIAL** | Models, SciPy adapters, inference diagnostics, budget accounting, reports, calibration, primary-endpoint/uncertainty infrastructure, profiling, provenance и tests присутствуют. Validated NUMERIS-GO controller и complete end-to-end campaign отсутствуют. |
 | Git/publication hygiene | **PASS** | Private ТЗ не менялось и не публикуется; этот audit commit не должен включать code, research, docs или private. |
+| Research Gap Closure matrix | **PASS как структура / OPEN по научному решению** | Matrix добавлена и сравнивает механизмы ближайших направлений, но итоговый статус `GAP-UNRESOLVED`; source-aligned reproduction и overlap closure не завершены. |
+| Minimal scientific prototype | **PASS как freeze / NOT RUN** | Осциллятор, target, seeds, baseline, бюджет и falsification rules зафиксированы в v0.1. Experimental samples, endpoints и bootstrap results отсутствуют. |
+| Mathematical candidate | **PASS как formalization / BLOCKED as contribution** | Кандидат NUMERIS-GO формализован для ограниченного scalar Gaussian target. Theorem-level guarantees, novelty, automatic sensitivity source и solver-integrated controller отсутствуют. |
 
 ## Phase gates against the private ТЗ
 
@@ -61,11 +68,11 @@ Evidence ledgers, baseline manifest, literature protocol и executable structura
 
 ### Phase II — Mathematical Core: **PARTIAL / BLOCKED for novelty**
 
-Есть target-versus-cost постановка, Gaussian likelihood perturbation baseline и heuristic sensitivity/temporal scaffolding. Нет validated solver-integrated goal-oriented estimator, доказанных convergence/stability/reliability properties или подтверждённой математической новизны.
+Есть target-versus-cost постановка, Gaussian likelihood perturbation baseline, formal minimal candidate и heuristic sensitivity/temporal scaffolding. Нет validated solver-integrated goal-oriented estimator, доказанных convergence/stability/reliability properties, theorem-level result или подтверждённой математической новизны.
 
 ### Phase III — Software Laboratory: **PARTIAL**
 
-Библиотека, пять benchmark factories, solver adapters, bounded budget semantics, calibration helpers, reference diagnostic, profiling provenance и tests работают локально. Полная интеграция validated controller и end-to-end reproducibility package по всем заявленным экспериментам не закрыта.
+Библиотека, пять benchmark factories, solver adapters, bounded budget semantics, calibration helpers, reference diagnostic, profiling provenance и tests работают локально. Минимальный oscillator protocol только заморожен; его execution отсутствует. Полная интеграция validated controller и end-to-end reproducibility package по всем заявленным экспериментам не закрыта.
 
 ### Phase IV — Scientific Validation: **FAIL**
 
@@ -77,7 +84,7 @@ Validated scientific contribution, superiority/non-inferiority result, complete 
 
 ## Required remaining gates
 
-1. Завершить source-aligned baseline evidence или зафиксировать каждый blocker как `NOT-REPRODUCED` с artifact-level причиной.
+1. Завершить source-aligned baseline evidence или зафиксировать каждый blocker как `NOT-REPRODUCED` с artifact-level причиной; закрыть `GAP-UNRESOLVED` решением `PROCEED`, `REFRAME` или `STOP/NEGATIVE RESULT`.
 2. Сохранить machine-readable artifact фактического five-model bounded diagnostic с commit hash; не переименовывать его в full campaign и не расширять вывод `REFERENCE-RESOLVED`.
 3. Запустить frozen manifest в полном объявленном объёме либо явно документировать невозможность полного запуска; сохранить все success, failure, over-budget и not-started cases.
 4. Рассчитать declared primary endpoints: likelihood distortion и parameter RMSE, paired uncertainty intervals, failure/budget rates и negative-results ledger.
@@ -89,4 +96,4 @@ Validated scientific contribution, superiority/non-inferiority result, complete 
 
 ## Permitted public claim
 
-> NUMERIS HEAD `4786700` — локально запускаемый, протестированный deterministic research prototype с frozen experiment manifest, evidence ledgers, bounded five-model reference diagnostic (`5/5 REFERENCE-RESOLVED`), bounded campaign/budget infrastructure, reliability-calibration helpers, paired bootstrap and primary-endpoint fail-closed infrastructure, provenance-aware profiling и fail-closed optional C++ gate. Five-model result является bounded diagnostic, не full campaign; primary-endpoint и bootstrap helpers не являются фактическими full-campaign results; проект не является подтверждённо новым методом, доказанно превосходящим стандартные решатели, завершённым Bayesian study или publication-ready результатом. Novelty, superiority и publication claims запрещены.
+> NUMERIS кодовый HEAD `187f99a` — локально запускаемый, протестированный deterministic research prototype с frozen experiment manifest, Research Gap Closure matrix со статусом `GAP-UNRESOLVED`, формализованным minimal NUMERIS-GO candidate, bounded five-model reference diagnostic (`5/5 REFERENCE-RESOLVED`), bounded campaign/budget infrastructure, reliability-calibration helpers, paired bootstrap and primary-endpoint fail-closed infrastructure, provenance-aware profiling и fail-closed optional C++ gate. Minimal oscillator protocol frozen, но эксперимент не запускался. Five-model result является bounded diagnostic, не full campaign; primary-endpoint и bootstrap helpers не являются фактическими full-campaign results; candidate не является theorem-level, solver-integrated или подтверждённо новым методом; проект не доказал superiority, не является завершённым Bayesian study и не является publication-ready результатом. Novelty, superiority и publication claims запрещены.
