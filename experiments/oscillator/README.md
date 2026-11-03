@@ -12,3 +12,17 @@ The experiment compares:
 
 The sole primary target is parameter RMSE under a matched cap of 2,000 RHS evaluations per seed. Any result must preserve negative, failed, over-budget, and incomplete cases and must not be interpreted as evidence of general superiority or novelty.
 
+## Bounded runner
+
+Run the executable diagnostic with its intentionally small defaults:
+
+```bash
+python scripts/run_minimal_oscillator.py --output results/oscillator_minimal.json
+```
+
+The artifact is labelled `exploratory`/`bounded`. The candidate contract is
+currently not implemented, so the report returns `NOT-IMPLEMENTED` and does
+not substitute an existing controller heuristic. It records the manifest
+commit, environment, paired seeds, DOP853 baseline, budget/failure statuses,
+and unavailable primary RMSE/bootstrap fields.
+
