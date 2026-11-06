@@ -19,12 +19,15 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from numeris.inference.gaussian import gaussian_negative_log_likelihood
-from numeris.models.base import ODEModel
+from numeris.models.protocol_oscillator import (
+    PROTOCOL_TRUE_PARAMETERS,
+    make_protocol_oscillator,
+)
 from numeris.solvers import solve_ode
 from scipy.optimize import minimize
 
 MANIFEST_PATH = "research/protocol/MINIMAL_SCIENTIFIC_PROTOTYPE_v0.1.md"
-TRUTH = np.array([1.0, 0.1, 0.2], dtype=float)
+TRUTH = PROTOCOL_TRUE_PARAMETERS.copy()
 DEFAULT_SEEDS = (0, 1)
 DEFAULT_SIGMA = 0.05
 DEFAULT_RHS_BUDGET = 2_000
@@ -64,25 +67,49 @@ def _environment() -> dict[str, Any]:
 
 
 def _observations(seed: int, sigma: float):
-    times = np.linspace(0.0, 20.0, 201)
-
-    def rhs(t: float, state: np.ndarray, params: np.ndarray) -> np.ndarray:
-        omega, zeta, forcing = params
-        return np.array(
-            [state[1], -2.0 * zeta * omega * state[1] - omega**2 * state[0]
-             + forcing * np.cos(omega * t)]
-        )
-
-    model = ODEModel(
-        rhs=rhs, initial_state=[1.0, 0.0], t_span=(0.0, 20.0),
-        observation_times=times, observe=lambda states: np.asarray(states)[:, 0],
-    )
+    model = make_protocol_oscillator()
     reference = solve_ode(model, TRUTH, method="DOP853", rtol=1e-12, atol=1e-14)
     if not reference.success:
         raise RuntimeError(f"reference solve failed: {reference.message}")
     rng = np.random.default_rng(seed)
     observations = model.observe(reference.states)
     return model, observations + rng.normal(0.0, sigma, observations.shape)
+
+
+def _reference_validation() -> dict[str, Any]:
+    """Validate the declared reference against tighter and independent solves."""
+    model = make_protocol_oscillator()
+    reference = solve_ode(model, TRUTH, method="DOP853", rtol=1e-12, atol=1e-14)
+    tighter = solve_ode(model, TRUTH, method="DOP853", rtol=1e-13, atol=1e-15)
+    independent = solve_ode(model, TRUTH, method="Radau", rtol=1e-12, atol=1e-14)
+    if not all(result.success for result in (reference, tighter, independent)):
+        return {
+            "status": "REFERENCE-UNRESOLVED",
+            "checks": {
+                "tighter_dop853": False,
+                "independent_radau": False,
+            },
+            "discrepancy": {"tighter_dop853_max_abs": None, "independent_radau_max_abs": None},
+        }
+    ref_observed = model.observe(reference.states)
+    tighter_observed = model.observe(tighter.states)
+    radau_observed = model.observe(independent.states)
+    tighter_error = float(np.max(np.abs(ref_observed - tighter_observed)))
+    radau_error = float(np.max(np.abs(ref_observed - radau_observed)))
+    checks = {"tighter_dop853": tighter_error <= 1e-10, "independent_radau": radau_error <= 1e-9}
+    return {
+        "status": "REFERENCE-RESOLVED" if all(checks.values()) else "REFERENCE-UNRESOLVED",
+        "checks": checks,
+        "discrepancy": {
+            "tighter_dop853_max_abs": tighter_error,
+            "independent_radau_max_abs": radau_error,
+        },
+        "solver_settings": {
+            "reference": {"method": "DOP853", "rtol": 1e-12, "atol": 1e-14},
+            "tighter": {"method": "DOP853", "rtol": 1e-13, "atol": 1e-15},
+            "independent": {"method": "Radau", "rtol": 1e-12, "atol": 1e-14},
+        },
+    }
 
 
 def _baseline(seed: int, *, sigma: float, budget: int, rtol: float, atol: float) -> dict[str, Any]:
@@ -162,6 +189,7 @@ def run_minimal_prototype(
         raise ValueError("sigma, tolerances, and max_rhs_evals must be positive")
     runs = []
     baseline_rmse = []
+    reference = _reference_validation()
     for seed in seed_values:
         baseline = _baseline(seed, sigma=sigma, budget=max_rhs_evals, rtol=rtol, atol=atol)
         if baseline["status"] == "completed":
@@ -176,6 +204,7 @@ def run_minimal_prototype(
             "paired_seeds": seed_values, "max_rhs_evals_per_seed": max_rhs_evals,
         },
         "environment": _environment(), "truth": TRUTH.tolist(), "observation_noise_sigma": sigma,
+        "reference": reference,
         "candidate": {"status": "NOT-IMPLEMENTED", "substitution_forbidden": True}, "runs": runs,
         "primary": {
             "parameter_rmse": {"baseline": baseline_rmse, "candidate": None, "candidate_status": "NOT-IMPLEMENTED"},

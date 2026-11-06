@@ -7,6 +7,8 @@ __pycache__/
 *.egg-info/
 results/**
 !results/.gitkeep
+desktop_app/results/**
+!desktop_app/results/.gitkeep
 private/
 research/private/
 *.key
