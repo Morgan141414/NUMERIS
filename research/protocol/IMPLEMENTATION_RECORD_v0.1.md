@@ -17,11 +17,11 @@ themselves.
 | Component | Current status | Evidence | Protocol consequence |
 | --- | --- | --- | --- |
 | Frozen specification | **IMPLEMENTED AS SPECIFICATION** | `research/protocol/MINIMAL_SCIENTIFIC_PROTOTYPE_v0.1.md` | Defines the model, target, arms, budget, reference checks, analysis, and failure labels. It must not be overwritten after results inspection. |
-| Exact protocol model | **NOT ACCEPTED** | The bounded runner contains an inline RHS matching the declared equations, but there is no separately accepted protocol model with a compatibility test. The general benchmark oscillator uses a different forcing/damping form. | No run may be called a valid frozen-protocol run until the exact model is isolated and tested. |
-| `x1` observation | **PARTIAL / NOT ACCEPTED** | The bounded runner observes `states[:, 0]`; the general model interfaces support observations. | The observation map must be owned by the exact protocol model and tested to return only `x1` at the 201 declared times. |
-| Multi-start bounded MLE | **PARTIAL / NOT ACCEPTED** | `scripts/run_minimal_oscillator.py` declares the three starts and bounds and uses L-BFGS-B, but its accounting is post-hoc and the run can exceed the cap during a solver call. | No parameter RMSE comparison is admissible until identical multi-start behaviour and hard per-arm accounting are validated. |
+| Exact protocol model | **IMPLEMENTED / UNIT-TESTED** | `numeris/models/protocol_oscillator.py` owns the frozen RHS, parameters, initial state, interval, and grid; `tests/unit/test_protocol_oscillator_model.py` verifies compatibility. | The runner now uses this exact model. This does not establish scientific validity by itself. |
+| `x1` observation | **IMPLEMENTED / UNIT-TESTED** | `observe_x1` is part of the exact protocol model and returns only `x1`; the declared 201-point grid is tested. | Synthetic observations now use the frozen observation map. |
+| Multi-start bounded MLE | **SCAFFOLDED / NOT ACCEPTED AS PROTOCOL ARM** | `numeris/inference/multistart.py` provides deterministic fixed-start orchestration and explicit statuses, but the runner still uses legacy post-hoc accounting and the helper is not yet wired into both arms. | No parameter RMSE comparison is admissible until common hard per-arm accounting is integrated and validated. |
 | Candidate controller | **NOT-IMPLEMENTED** | The runner explicitly returns `NOT-IMPLEMENTED`; `numeris/controller/adjoint_sensitivity.py` is an experimental sensitivity utility and not an end-to-end controller. | No candidate-versus-baseline inference result may be computed or relabelled as NUMERIS-GO evidence. |
-| Reference validation | **NOT RESOLVED** | The runner creates a tight DOP853 setup reference, but does not yet produce an accepted record for the tighter DOP853 and independent Radau gates required by the frozen protocol. | Any inference comparison remains `REFERENCE-UNRESOLVED` until both checks pass and are recorded. |
+| Reference validation | **RESOLVED IN RUNNER / ARTIFACT RETENTION PENDING** | `scripts/run_minimal_oscillator.py` records tighter DOP853 and independent Radau discrepancies; current checks pass (`2.60e-12` and `2.57e-12`). | This gate is locally resolved for the current run, but it is not evidence for a candidate comparison. |
 | Paired campaign | **NOT RUN / NOT VALIDATED** | The bounded runner is exploratory, defaults to two seeds, and currently has no candidate arm. | There is no valid 10-seed matched-budget campaign and no scientific estimate of `delta_RMSE`. |
 | Desktop UI | **OUT OF SCOPE FOR THIS GATE** | Native Tkinter wrapper exists separately. | UI availability does not satisfy any mathematical, budget, candidate, or validation gate. |
 
@@ -194,17 +194,15 @@ conditions in the frozen positive decision rule pass.
 
 ## 4. Current implementation blockers
 
-1. The exact frozen oscillator must be separated from the general benchmark
-   oscillator and covered by compatibility tests.
-2. The `x1` observation contract must be explicit at the exact protocol
-   boundary, not only an inline runner detail.
-3. Multi-start MLE must use enforceable hard-budget accounting rather than
+1. Multi-start MLE must use enforceable hard-budget accounting rather than
    relying on post-hoc detection after a solver call.
-4. The candidate controller has no accepted end-to-end implementation.
-5. Reference convergence and independent-family validation have no accepted
-   frozen-protocol artifact.
-6. The default bounded runner is not the ten-seed scientific campaign; its
+2. The candidate controller has no accepted end-to-end implementation.
+3. The default bounded runner is not the ten-seed scientific campaign; its
    outputs must remain exploratory and must not be promoted to evidence.
+4. The current baseline exceeds the declared 2,000 RHS cap (`2408/2000` in
+   the bounded diagnostic run), so no matched-budget baseline result exists.
+5. The reference checks are recorded by the runner, but a retained
+   machine-readable campaign artifact and full ten-seed run are still absent.
 
 ## 5. Claims prohibited at this stage
 
@@ -225,9 +223,10 @@ Until every applicable gate above is accepted, the project must not claim:
 The honest current summary is:
 
 > The frozen minimal prototype is specified and partially scaffolded. Its
-> exact model boundary, enforceable matched-budget estimator, candidate
-> controller, and reference-validation gates are not all accepted. Therefore
-> there is no valid candidate-versus-baseline scientific result.
+> exact model and local reference checks are implemented, but its enforceable
+> matched-budget estimator, candidate controller, full campaign, and scientific
+> comparison are not accepted. Therefore there is no valid
+> candidate-versus-baseline scientific result.
 
 ## 6. Required next record update
 
