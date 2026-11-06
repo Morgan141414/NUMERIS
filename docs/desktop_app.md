@@ -2,16 +2,18 @@
 
 ## Current status
 
-The current public NUMERIS revision does **not** contain a `desktop_app/`
-implementation or a registered desktop entry point. The repository is a
-scientific-computing library and research laboratory, not a finished user
-application.
+The checkout currently contains a native `desktop_app/` Tkinter shell and a
+`python -m desktop_app` entry point. This UI is a thin exploratory wrapper
+around the existing benchmark API; it is not a separate web service and does
+not implement the NUMERIS-GO research candidate. The UI implementation is
+kept separate from the numerical library and the UI test/documentation change
+does not alter it.
 
 Therefore the desktop UI status is:
 
 ```text
-DESKTOP UI: NOT IMPLEMENTED
-DESKTOP TESTS: HEADLESS CONTRACT ONLY
+DESKTOP UI: EXPLORATORY TKINTER PROTOTYPE
+DESKTOP TESTS: HEADLESS STATIC CONTRACT
 SCIENTIFIC STATUS: PROTOTYPE — NOT SCIENTIFICALLY COMPLETE
 ```
 
@@ -44,8 +46,9 @@ source .venv/bin/activate
 python -m desktop_app
 ```
 
-The exact command is provisional until an entry point is added. No command
-above should be interpreted as proof that the application currently exists.
+The command launches the local Tkinter shell when a graphical macOS session is
+available. It does not start a web server. The UI is a convenience layer for
+bounded diagnostics, not a proof that the scientific candidate exists.
 
 ## Tkinter and headless CI limitations
 
@@ -59,10 +62,11 @@ or other headless environments. A future implementation should therefore:
 - provide deterministic callbacks that can be tested without a display;
 - keep UI tests separate from numerical and scientific validation tests.
 
-The current test file `tests/ui/test_desktop_app_entrypoint.py` performs only
-AST/static checks. If no entry point exists, it reports the honest
-`NOT IMPLEMENTED` state by skipping the optional checks; it never requires a
-display server.
+The test file `tests/ui/test_desktop_app_entrypoint.py` performs only
+AST/static checks on the entry point. It never constructs a `Tk()` root and
+never requires a display server. If the optional entry point is absent in a
+minimal checkout, the checks are skipped with an explicit reason rather than
+claiming that the UI was tested.
 
 ## Scientific limitations
 

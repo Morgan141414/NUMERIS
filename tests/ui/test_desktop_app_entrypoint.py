@@ -63,5 +63,11 @@ def test_desktop_entry_point_has_a_guarded_main_call() -> None:
         for node in tree.body
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
-    assert "main" in function_names
+    imported_names = {
+        alias.asname or alias.name
+        for node in tree.body
+        if isinstance(node, ast.ImportFrom)
+        for alias in node.names
+    }
+    assert "main" in function_names or "main" in imported_names
     assert 'if __name__ == "__main__"' in source or "if __name__ == '__main__'" in source
